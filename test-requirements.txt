@@ -1,0 +1,8 @@
+pytest<3.8.0
+pytest-cov
+pytest-sugar
+codecov>=1.4.0
+botocore>=1.12
+pylint>1.9.4
+isort>=4.3.4
+sphinx>=1.8.4
