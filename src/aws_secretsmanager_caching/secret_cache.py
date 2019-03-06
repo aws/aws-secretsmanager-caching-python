@@ -14,6 +14,7 @@
 from copy import deepcopy
 
 import botocore.session
+from setuptools_scm import get_version
 
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
@@ -30,13 +31,15 @@ class SecretCache:
         :param config: Secret cache configuration
 
         :type client: botocore.client.BaseClient
-        :param client: boto 'secretsmanager' client
+        :param client: botocore 'secretsmanager' client
         """
         self._client = client
         self._config = deepcopy(config)
         self._cache = LRUCache(max_size=self._config.max_cache_size)
         if self._client is None:
             self._client = botocore.session.get_session().create_client("secretsmanager")
+
+        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(get_version())
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.

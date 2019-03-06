@@ -6,7 +6,6 @@ setup(
     url="https://aws.amazon.com/secrets-manager/",
     author="Amazon Web Services",
     author_email="aws-secretsmanager-dev@amazon.com",
-    version="1.0",
     packages=find_packages(where="src", exclude=("test",)),
     package_dir={"": "src"},
     classifiers=[
@@ -17,8 +16,12 @@ setup(
         'Programming Language :: Python :: 3.7'
     ],
     keywords='secretsmanager secrets manager development cache caching client',
+    use_scm_version={
+        'write_to': 'version.txt'
+    },
     python_requires='>3.5',
-    setup_requires=['pytest-runner'],
-    tests_require=['pytest<3.8.0', 'pytest-cov', 'pytest-sugar', 'codecov>=1.4.0']
+    install_requires=['botocore'],
+    setup_requires=['pytest-runner', 'setuptools-scm'],
+    tests_require=['pytest', 'pytest-cov', 'pytest-sugar', 'codecov']
 
 )

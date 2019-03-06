@@ -18,3 +18,4 @@ dist/
 .tox/
 venv/
 env/
+version.txt
