@@ -1,0 +1,44 @@
+[MASTER]
+
+[MESSAGES CONTROL]
+disable = I0011, # locally-disabled
+          R0903 # too-few-public-methods
+
+[REPORTS]
+# Set the output format. Available formats are text, parseable, colorized, msvs
+# (visual studio) and html
+output-format=colorized
+
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120
+# Maximum number of lines in a module
+#max-module-lines=1000
+
+[BASIC]
+good-names=
+    i,
+    e,
+    logger
+
+[SIMILARITIES]
+# Minimum lines number of a similarity.
+min-similarity-lines=5
+# Ignore comments when computing similarities.
+ignore-comments=yes
+# Ignore docstrings when computing similarities.
+ignore-docstrings=yes
+
+[VARIABLES]
+# Tells whether we should check for unused import in __init__ files.
+init-import=yes
+
+[LOGGING]
+# Apply logging string format checks to calls on these modules.
+logging-modules=
+    logging
+
+[TYPECHECK]
+ignored-modules=
+    distutils
