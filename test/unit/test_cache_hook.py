@@ -53,7 +53,7 @@ class TestSecretCacheHook(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_get_secret_string(self):
+    def test_calls_hook(self):
         secret = 'mysecret'
         response = {}
         versions = {

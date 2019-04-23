@@ -132,6 +132,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         """Store the given result using a hook if present"""
         if self._config.secret_cache_hook is None:
             self._result = result
+            return
 
         self._result = self._config.secret_cache_hook.put(result)
 
