@@ -14,6 +14,7 @@
 Unit test suite for items module
 """
 import unittest
+import botocore
 
 from aws_secretsmanager_caching.secret_cache import SecretCache
 from aws_secretsmanager_caching.config import SecretCacheConfig
