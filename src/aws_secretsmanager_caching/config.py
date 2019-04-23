@@ -42,6 +42,10 @@ class SecretCacheConfig:
     :param secret_refresh_interval: The number of seconds to wait between
         refreshing cached secret information.
 
+    :type secret_cache_hook: SecretCacheHook
+    :param secret_cache_hook: An implementation of the SecretCacheHook abstract
+        class
+
     """
 
     OPTION_DEFAULTS = {
@@ -51,6 +55,7 @@ class SecretCacheConfig:
         "exception_retry_delay_max": 3600,
         "default_version_stage": "AWSCURRENT",
         "secret_refresh_interval": timedelta(hours=1).total_seconds(),
+        "secret_cache_hook": None
     }
 
     def __init__(self, **kwargs):

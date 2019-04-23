@@ -91,7 +91,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             return
         self._refresh_needed = False
         try:
-            self._result = self._execute_refresh()
+            self.__set_result(self._execute_refresh())
             self._exception = None
             self._exception_count = 0
         except Exception as e:  # pylint: disable=broad-except
@@ -121,6 +121,19 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
                 raise self._exception
             return deepcopy(value)
 
+    def __get_result(self):
+        """Get the stored result using a hook if present"""
+        if self._config.secret_cache_hook is None:
+            return self._result
+
+        return self._config.secret_cache_hook.get(self._result)
+
+    def __set_result(self, result):
+        """Store the given result using a hook if present"""
+        if self._config.secret_cache_hook is None:
+            self._result = result
+
+        self._result = self._config.secret_cache_hook.put(result)
 
 class SecretCacheItem(SecretCacheObject):
     """The secret cache item that maintains a cache of secret versions."""
@@ -195,7 +208,7 @@ class SecretCacheItem(SecretCacheObject):
         :rtype: dict
         :return: The cached secret for the given version stage.
         """
-        version_id = self._get_version_id(self._result, version_stage)
+        version_id = self._get_version_id(self.__get_result(), version_stage)
         if not version_id:
             return None
         version = self._versions.get(version_id)
@@ -244,4 +257,4 @@ class SecretCacheVersion(SecretCacheObject):
         :rtype: dict
         :return: The cached GetSecretValue result.
         """
-        return self._result
+        return self.__get_result()
