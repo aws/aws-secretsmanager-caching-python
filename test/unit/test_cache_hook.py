@@ -15,6 +15,8 @@ Unit test suite for items module
 """
 import unittest
 
+from aws_secretsmanager_caching.secret_cache import SecretCache
+from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
 
 class DummySecretCacheHook(SecretCacheHook):
@@ -53,7 +55,7 @@ class TestSecretCacheHook(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_calls_hook(self):
+    def test_calls_hook_string(self):
         secret = 'mysecret'
         response = {}
         versions = {
@@ -69,5 +71,24 @@ class TestSecretCacheHook(unittest.TestCase):
                                                    version_response))
 
         self.assertEquals(secret, cache.get_secret_string('test'))
+        self.assertEquals(2, hook.putCount)
+        self.assertEquals(2, hook.getCount)
+
+    def test_calls_hook_binary(self):
+        secret = b'01010101'
+        response = {}
+        versions = {
+            '01234567890123456789012345678901': ['AWSCURRENT']
+        }
+        version_response = {'SecretBinary': secret}
+
+        hook = DummySecretCacheHook()
+        config = SecretCacheConfig(secret_cache_hook=hook)
+
+        cache = SecretCache(config=config, client=self.get_client(response,
+                                                   versions,
+                                                   version_response))
+
+        self.assertEquals(secret, cache.get_secret_binary('test'))
         self.assertEquals(2, hook.putCount)
         self.assertEquals(2, hook.getCount)
