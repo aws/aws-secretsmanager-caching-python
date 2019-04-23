@@ -19,6 +19,7 @@ import botocore
 from aws_secretsmanager_caching.secret_cache import SecretCache
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
+from botocore.stub import Stubber
 
 class DummySecretCacheHook(SecretCacheHook):
     """A dummy implementation of the SecretCacheHook abstract class for testing"""
