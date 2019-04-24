@@ -12,7 +12,6 @@ phases:
       - aws configure set aws_access_key_id $(echo $temp_role | jq -r '.Credentials.AccessKeyId')
       - aws configure set aws_secret_access_key $(echo $temp_role | jq -r '.Credentials.SecretAccessKey')
       - aws configure set aws_session_token $(echo $temp_role | jq -r '.Credentials.SessionToken')
-      - exit 1
   build:
     commands:
       - tox -v
