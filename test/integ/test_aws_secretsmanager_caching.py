@@ -14,19 +14,22 @@ import pytest
 import botocore
 import botocore.session
 import time
+import inspect
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
 
 
 class TestAwsSecretsManagerCachingInteg:
+    fixture_prefix = 'python_caching_integ_test_'
 
     @pytest.fixture(scope='module')
     def client(self):
         yield botocore.session.get_session().create_client('secretsmanager', region_name='us-west-2')
 
     @pytest.fixture
-    def secret_string(self, client):
-        secret = client.create_secret(Name='test_get_secret_string',
+    def secret_string(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretString='test')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
@@ -36,11 +39,13 @@ class TestAwsSecretsManagerCachingInteg:
         secret = client.get_secret_value(SecretId=secret_string['ARN'])['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('test_get_secret_string') == secret
+            assert cache.get_secret_string("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           inspect.stack()[0][3])) == secret
 
     @pytest.fixture
-    def secret_string_stage(self, client):
-        secret = client.create_secret(Name='test_get_secret_string_stage',
+    def secret_string_stage(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretString='test')
 
         client.put_secret_value(SecretId=secret['ARN'], SecretString='test2',
@@ -55,11 +60,13 @@ class TestAwsSecretsManagerCachingInteg:
                                          VersionStage='AWSPREVIOUS')['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('test_get_secret_string_stage', 'AWSPREVIOUS') == secret
+            assert cache.get_secret_string("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           inspect.stack()[0][3]), 'AWSPREVIOUS') == secret
 
     @pytest.fixture
-    def secret_string_refresh(self, client):
-        secret = client.create_secret(Name='test_get_secret_string_refresh',
+    def secret_string_refresh(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretString='test')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
@@ -70,7 +77,8 @@ class TestAwsSecretsManagerCachingInteg:
         secret = client.get_secret_value(SecretId=secret_string_refresh['ARN'])['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('test_get_secret_string_refresh') == secret
+            assert cache.get_secret_string("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           inspect.stack()[0][3])) == secret
 
         client.put_secret_value(SecretId=secret_string_refresh['ARN'],
                                 SecretString='test2', VersionStages=['AWSCURRENT'])
@@ -78,11 +86,13 @@ class TestAwsSecretsManagerCachingInteg:
         time.sleep(2)
         secret = client.get_secret_value(SecretId=secret_string_refresh['ARN'])['SecretString']
         for _ in range(10):
-            assert cache.get_secret_string('test_get_secret_string_refresh') == secret
+            assert cache.get_secret_string("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           inspect.stack()[0][3])) == secret
 
     @pytest.fixture
-    def secret_binary(self, client):
-        secret = client.create_secret(Name='test_get_secret_binary',
+    def secret_binary(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretBinary=b'01010101')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
@@ -92,26 +102,31 @@ class TestAwsSecretsManagerCachingInteg:
         secret = client.get_secret_value(SecretId=secret_binary['ARN'])['SecretBinary']
 
         for _ in range(10):
-            assert cache.get_secret_binary('test_get_secret_binary') == secret
+            assert cache.get_secret_binary("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           inspect.stack()[0][3])) == secret
 
     @pytest.fixture
-    def secret_binary_empty(self, client):
-        secret = client.create_secret(Name='test_get_secret_binary_empty',
+    def secret_binary_empty(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretString='test')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
 
     def test_get_secret_binary_empty(self, client, secret_binary_empty):
         cache = SecretCache(client=client)
-        assert cache.get_secret_binary('test_get_secret_binary_empty') is None
+        assert cache.get_secret_binary("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                       inspect.stack()[0][3])) is None
 
     @pytest.fixture
-    def secret_string_empty(self, client):
-        secret = client.create_secret(Name='test_get_secret_string_empty',
+    def secret_string_empty(self, request, client):
+        secret = client.create_secret(Name="{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                           request.function.__name__),
                                       SecretBinary=b'01010101')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
 
     def test_get_secret_string_empty(self, client, secret_string_empty):
         cache = SecretCache(client=client)
-        assert cache.get_secret_string('test_get_secret_string_empty') is None
+        assert cache.get_secret_string("{0}{1}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix,
+                                                       inspect.stack()[0][3])) is None
