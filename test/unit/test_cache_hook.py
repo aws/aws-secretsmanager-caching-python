@@ -89,7 +89,8 @@ class TestSecretCacheHook(unittest.TestCase):
                                                                   version_response))
 
         for _ in range(10):
-            self.assertEquals(hooked_secret, cache.get_secret_string('test'))
+            fetched_secret = cache.get_secret_string('test')
+            self.assertTrue(fetched_secret.startswith(hooked_secret))
 
     def test_calls_hook_binary(self):
         secret = b'01010101'
@@ -108,4 +109,4 @@ class TestSecretCacheHook(unittest.TestCase):
                                                                   version_response))
 
         for _ in range(10):
-            self.assertEquals(hooked_secret, cache.get_secret_binary('test'))
+            self.assertEquals(hooked_secret, cache.get_secret_binary('test')[0:24])
