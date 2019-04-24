@@ -139,8 +139,10 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
 class SecretCacheItem(SecretCacheObject):
     """The secret cache item that maintains a cache of secret versions."""
 
+
     def __init__(self, config, client, secret_id):
         """Construct a secret cache item.
+
 
         :type config: aws_secretsmanager_caching.SecretCacheConfig
         :param config: Configuration for the cache.

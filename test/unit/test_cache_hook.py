@@ -21,6 +21,7 @@ from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
 from botocore.stub import Stubber
 
+
 class DummySecretCacheHook(SecretCacheHook):
     """A dummy implementation of the SecretCacheHook abstract class for testing"""
 
@@ -35,6 +36,7 @@ class DummySecretCacheHook(SecretCacheHook):
         return self.dict[cached_obj]
 
 class TestSecretCacheHook(unittest.TestCase):
+    
 
     def setUp(self):
         pass
@@ -68,8 +70,8 @@ class TestSecretCacheHook(unittest.TestCase):
         config = SecretCacheConfig(secret_cache_hook=hook)
 
         cache = SecretCache(config=config, client=self.get_client(response,
-                                                   versions,
-                                                   version_response))
+                                                                  versions,
+                                                                  version_response))
 
         for _ in range(10):
             self.assertEquals(secret, cache.get_secret_string('test'))
@@ -86,8 +88,8 @@ class TestSecretCacheHook(unittest.TestCase):
         config = SecretCacheConfig(secret_cache_hook=hook)
 
         cache = SecretCache(config=config, client=self.get_client(response,
-                                                   versions,
-                                                   version_response))
+                                                                  versions,
+                                                                  version_response))
 
         for _ in range(10):
             self.assertEquals(secret, cache.get_secret_binary('test'))

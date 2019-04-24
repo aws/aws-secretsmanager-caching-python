@@ -30,7 +30,6 @@ class SecretCacheHook:  # pylint: disable=too-many-instance-attributes
     def put(self, obj):
         """Prepare the object for storing in the cache"""
 
-
     @abstractmethod
     def get(self, cached_obj):
         """Derive the object from the cached object."""
