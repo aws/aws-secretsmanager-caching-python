@@ -35,8 +35,8 @@ class DummySecretCacheHook(SecretCacheHook):
     def get(self, cached_obj):
         return self.dict[cached_obj]
 
+
 class TestSecretCacheHook(unittest.TestCase):
-    
 
     def setUp(self):
         pass

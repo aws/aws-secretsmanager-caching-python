@@ -136,9 +136,9 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
 
         self._result = self._config.secret_cache_hook.put(result)
 
+
 class SecretCacheItem(SecretCacheObject):
     """The secret cache item that maintains a cache of secret versions."""
-
 
     def __init__(self, config, client, secret_id):
         """Construct a secret cache item.
