@@ -14,6 +14,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+
 class SecretCacheHook:  # pylint: disable=too-many-instance-attributes
     """Interface to hook the local in-memory cache.  This interface will allow
     for clients to perform actions on the items being stored in the in-memory
