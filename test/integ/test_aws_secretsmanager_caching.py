@@ -22,8 +22,7 @@ class TestAwsSecretsManagerCachingInteg:
 
     @pytest.fixture(scope='module')
     def client(self):
-        session = botocore.session.get_session()
-        yield session.create_client('secretsmanager', region_name='us-west-2')
+        yield botocore.session.get_session().create_client('secretsmanager', region_name='us-west-2')
 
     @pytest.fixture
     def secret_string(self, client):
