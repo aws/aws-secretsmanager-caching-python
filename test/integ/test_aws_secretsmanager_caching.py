@@ -13,6 +13,7 @@
 import pytest
 import botocore
 import botocore.session
+import time
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
 
@@ -24,17 +25,10 @@ class TestAwsSecretsManagerCachingInteg:
         session = botocore.session.get_session()
         yield session.create_client('secretsmanager', region_name='us-west-2')
 
-    @pytest.fixture(scope='module')
+    @pytest.fixture
     def secret_string(self, client):
-        secret = client.create_secret(Name='secret_string',
+        secret = client.create_secret(Name='test_get_secret_string',
                                       SecretString='test')
-        yield secret
-        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
-
-    @pytest.fixture(scope='module')
-    def secret_binary(self, client):
-        secret = client.create_secret(Name='secret_binary',
-                                      SecretBinary=b'01010101')
         yield secret
         client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
 
@@ -43,34 +37,82 @@ class TestAwsSecretsManagerCachingInteg:
         secret = client.get_secret_value(SecretId=secret_string['ARN'])['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('secret_string') == secret
+            assert cache.get_secret_string('test_get_secret_string') == secret
 
-    def test_get_secret_string_empty(self, client, secret_binary):
-        cache = SecretCache(client=client)
-        assert cache.get_secret_string('secret_binary') is None
+    @pytest.fixture
+    def secret_string_stage(self, client):
+        secret = client.create_secret(Name='test_get_secret_string_stage',
+                                      SecretString='test')
 
-    def test_get_secret_string_stage(self, client, secret_string):
+        client.put_secret_value(SecretId=secret['ARN'], SecretString='test2',
+                                VersionStages=['AWSCURRENT'])
+
+        yield client.describe_secret(SecretId=secret['ARN'])
+        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
+
+    def test_get_secret_string_stage(self, client, secret_string_stage):
         cache = SecretCache(client=client)
-        secret = client.get_secret_value(SecretId=secret_string['ARN'])['SecretString']
+        secret = client.get_secret_value(SecretId=secret_string_stage['ARN'],
+                                         VersionStage='AWSPREVIOUS')['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('secret_string', 'AWSCURRENT') == secret
+            assert cache.get_secret_string('test_get_secret_string_stage', 'AWSPREVIOUS') == secret
 
-    def test_get_secret_string_refresh(self, client, secret_string):
+    @pytest.fixture
+    def secret_string_refresh(self, client):
+        secret = client.create_secret(Name='test_get_secret_string_refresh',
+                                      SecretString='test')
+        yield secret
+        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
+
+    def test_get_secret_string_refresh(self, client, secret_string_refresh):
         cache = SecretCache(config=SecretCacheConfig(secret_refresh_interval=1),
                             client=client)
-        secret = client.get_secret_value(SecretId=secret_string['ARN'])['SecretString']
+        secret = client.get_secret_value(SecretId=secret_string_refresh['ARN'])['SecretString']
 
         for _ in range(10):
-            assert cache.get_secret_string('secret_string') == secret
+            assert cache.get_secret_string('test_get_secret_string_refresh') == secret
+
+        client.put_secret_value(SecretId=secret_string_refresh['ARN'],
+                                SecretString='test2', VersionStages=['AWSCURRENT'])
+
+        time.sleep(2)
+        secret = client.get_secret_value(SecretId=secret_string_refresh['ARN'])['SecretString']
+        for _ in range(10):
+            assert cache.get_secret_string('test_get_secret_string_refresh') == secret
+
+    @pytest.fixture
+    def secret_binary(self, client):
+        secret = client.create_secret(Name='test_get_secret_binary',
+                                      SecretBinary=b'01010101')
+        yield secret
+        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
 
     def test_get_secret_binary(self, client, secret_binary):
         cache = SecretCache(client=client)
         secret = client.get_secret_value(SecretId=secret_binary['ARN'])['SecretBinary']
 
         for _ in range(10):
-            assert cache.get_secret_binary('secret_binary') == secret
+            assert cache.get_secret_binary('test_get_secret_binary') == secret
 
-    def test_get_secret_binary_empty(self, client, secret_string):
+    @pytest.fixture
+    def secret_binary_empty(self, client):
+        secret = client.create_secret(Name='test_get_secret_binary_empty',
+                                      SecretString='test')
+        yield secret
+        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
+
+    def test_get_secret_binary_empty(self, client, secret_binary_empty):
         cache = SecretCache(client=client)
-        assert cache.get_secret_binary('secret_string') is None
+        assert cache.get_secret_binary('test_get_secret_binary_empty') is None
+
+    @pytest.fixture
+    def secret_string_empty(self, client):
+        secret = client.create_secret(Name='test_get_secret_string_empty',
+                                      SecretBinary=b'01010101')
+        yield secret
+        client.delete_secret(SecretId=secret['ARN'], ForceDeleteWithoutRecovery=True)
+
+    def test_get_secret_string_empty(self, client, secret_string_empty):
+        cache = SecretCache(client=client)
+        assert cache.get_secret_string('test_get_secret_string_empty') is None
