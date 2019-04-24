@@ -28,12 +28,26 @@ class DummySecretCacheHook(SecretCacheHook):
     dict = {}
 
     def put(self, obj):
+        if 'SecretString' in obj:
+            obj['SecretString'] = obj['SecretString'] + "+hook_put"
+
+        if 'SecretBinary' in obj:
+            obj['SecretBinary'] = obj['SecretBinary'] + b'11111111'
+
         key = len(self.dict)
         self.dict[key] = obj
         return key
 
     def get(self, cached_obj):
-        return self.dict[cached_obj]
+        obj = self.dict[cached_obj]
+
+        if 'SecretString' in obj:
+            obj['SecretString'] = obj['SecretString'] + "+hook_get"
+
+        if 'SecretBinary' in obj:
+            obj['SecretBinary'] = obj['SecretBinary'] + b'00000000'
+
+        return obj
 
 
 class TestSecretCacheHook(unittest.TestCase):
@@ -60,6 +74,7 @@ class TestSecretCacheHook(unittest.TestCase):
 
     def test_calls_hook_string(self):
         secret = 'mysecret'
+        hooked_secret = secret + "+hook_put+hook_get"
         response = {}
         versions = {
             '01234567890123456789012345678901': ['AWSCURRENT']
@@ -74,10 +89,11 @@ class TestSecretCacheHook(unittest.TestCase):
                                                                   version_response))
 
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_string('test'))
+            self.assertEquals(hooked_secret, cache.get_secret_string('test'))
 
     def test_calls_hook_binary(self):
         secret = b'01010101'
+        hooked_secret = secret + b'1111111100000000'
         response = {}
         versions = {
             '01234567890123456789012345678901': ['AWSCURRENT']
@@ -92,4 +108,4 @@ class TestSecretCacheHook(unittest.TestCase):
                                                                   version_response))
 
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_binary('test'))
+            self.assertEquals(hooked_secret, cache.get_secret_binary('test'))
