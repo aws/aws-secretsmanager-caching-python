@@ -24,16 +24,15 @@ from botocore.stub import Stubber
 class DummySecretCacheHook(SecretCacheHook):
     """A dummy implementation of the SecretCacheHook abstract class for testing"""
 
-    putCount = 0
-    getCount = 0
+    dict = {}
 
     def put(self, obj):
-        self.putCount = self.putCount + 1
-        return obj
+        key = len(self.dict)
+        self.dict[key] = obj
+        return key
 
     def get(self, cached_obj):
-        self.getCount = self.getCount + 1
-        return cached_obj
+        return self.dict[cached_obj]
 
 class TestSecretCacheHook(unittest.TestCase):
 
@@ -73,8 +72,6 @@ class TestSecretCacheHook(unittest.TestCase):
                                                    version_response))
 
         self.assertEquals(secret, cache.get_secret_string('test'))
-        self.assertEquals(2, hook.putCount)
-        self.assertEquals(2, hook.getCount)
 
     def test_calls_hook_binary(self):
         secret = b'01010101'
@@ -92,5 +89,3 @@ class TestSecretCacheHook(unittest.TestCase):
                                                    version_response))
 
         self.assertEquals(secret, cache.get_secret_binary('test'))
-        self.assertEquals(2, hook.putCount)
-        self.assertEquals(2, hook.getCount)
