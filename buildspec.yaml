@@ -3,15 +3,8 @@ phases:
   install:
     commands:
       - apt-get update
-      - apt-get install -y python3-pip jq
-      - pip install --upgrade tox awscli
-  pre_build:
-    commands:
-      - test -n "$IAM_ROLE_ARN" || exit 1
-      - temp_role=$(aws sts assume-role --role-arn "$IAM_ROLE_ARN" --role-session-name "PythonCachingLibraryIntegTestSession")
-      - aws configure set aws_access_key_id $(echo $temp_role | jq -r '.Credentials.AccessKeyId')
-      - aws configure set aws_secret_access_key $(echo $temp_role | jq -r '.Credentials.SecretAccessKey')
-      - aws configure set aws_session_token $(echo $temp_role | jq -r '.Credentials.SessionToken')
+      - apt-get install -y python3-pip
+      - pip install --upgrade tox
   build:
     commands:
       - tox -v
