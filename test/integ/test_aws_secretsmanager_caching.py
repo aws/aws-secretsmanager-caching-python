@@ -33,14 +33,13 @@ class TestAwsSecretsManagerCachingInteg:
         while True:
             for secret in list_result['SecretList']:
                 if secret['Name'].startswith(TestAwsSecretsManagerCachingInteg.fixture_prefix):
-                    old_secrets.add(secret)
-            if 'nextToken' in list_result:
-                next_token = list_result['nextToken']
+                    old_secrets.append(secret)
+            if 'NextToken' in list_result:
+                next_token = list_result['NextToken']
                 list_result = client.list_secrets(NextToken=next_token)
                 time.sleep(0.5)
             else:
                 break
-
         for secret in old_secrets:
             print("Scheduling deletion of secret {}".format(secret['Name']))
             client.delete_secret(SecretId=secret['Name'])
