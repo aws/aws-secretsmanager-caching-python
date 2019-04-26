@@ -17,10 +17,9 @@ import json
 import unittest
 
 import botocore
-from botocore.stub import Stubber
-
 from aws_secretsmanager_caching.decorators import InjectKeywordedSecretString, InjectSecretString
 from aws_secretsmanager_caching.secret_cache import SecretCache
+from botocore.stub import Stubber
 
 
 class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.TestCase):

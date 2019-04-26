@@ -16,7 +16,6 @@ Unit test suite for high-level functions in aws_secretsmanager_caching
 import unittest
 
 import pytest
-
 from aws_secretsmanager_caching.cache.lru import LRUCache
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]

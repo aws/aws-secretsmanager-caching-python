@@ -17,11 +17,10 @@ import unittest
 
 import botocore
 import pytest
-from botocore.exceptions import ClientError, NoRegionError
-from botocore.stub import Stubber
-
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
+from botocore.exceptions import ClientError, NoRegionError
+from botocore.stub import Stubber
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]
 

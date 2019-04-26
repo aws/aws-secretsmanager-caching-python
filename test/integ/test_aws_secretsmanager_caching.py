@@ -19,10 +19,9 @@ from uuid import uuid4
 import botocore
 import botocore.session
 import pytest
-from botocore.exceptions import ClientError, HTTPClientError, NoCredentialsError
-
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
+from botocore.exceptions import ClientError, HTTPClientError, NoCredentialsError
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
