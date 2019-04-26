@@ -82,7 +82,7 @@ class TestAwsSecretsManagerCachingInteg:
 
         yield None
 
-    @pytest.fixture(scope='function')
+    @pytest.fixture
     def secret_string(self, request, client):
         name = "{0}{1}{2}".format(TestAwsSecretsManagerCachingInteg.fixture_prefix, request.function.__name__,
                                   TestAwsSecretsManagerCachingInteg.uuid_suffix)
