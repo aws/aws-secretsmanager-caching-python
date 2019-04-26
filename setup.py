@@ -1,11 +1,16 @@
 from setuptools import setup, find_packages
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 setup(
     name="aws_secretsmanager_caching",
     description="Client-side AWS Secrets Manager caching library",
-    url="https://aws.amazon.com/secrets-manager/",
+    url="https://github.com/aws/aws-secretsmanager-caching-python",
     author="Amazon Web Services",
     author_email="aws-secretsmanager-dev@amazon.com",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     packages=find_packages(where="src", exclude=("test",)),
     package_dir={"": "src"},
     classifiers=[

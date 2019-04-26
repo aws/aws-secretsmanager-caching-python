@@ -14,11 +14,11 @@
 Unit test suite for items module
 """
 import unittest
-import botocore
 
-from aws_secretsmanager_caching.secret_cache import SecretCache
-from aws_secretsmanager_caching.config import SecretCacheConfig
+import botocore
 from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
+from aws_secretsmanager_caching.config import SecretCacheConfig
+from aws_secretsmanager_caching.secret_cache import SecretCache
 from botocore.stub import Stubber
 
 
