@@ -50,7 +50,7 @@ class TestAwsSecretsManagerCachingInteg:
                 logger.info('Fetching results from ListSecretValue...')
                 for secret in page['SecretList']:
                     if secret['Name'].startswith(TestAwsSecretsManagerCachingInteg.fixture_prefix) and \
-                            (secret['LastChangedDate'] > two_days_ago):
+                            (secret['LastChangedDate'] > two_days_ago) and (secret['LastAccessedDate'] > two_days_ago):
                         old_secrets.append(secret)
                 try:
                     paginator_config['StartingToken'] = page['NextToken']
