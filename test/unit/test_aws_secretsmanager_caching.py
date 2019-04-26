@@ -14,14 +14,14 @@
 Unit test suite for high-level functions in aws_secretsmanager_caching
 """
 import unittest
-import pytest
+
 import botocore
+import pytest
+from botocore.exceptions import ClientError, NoRegionError
+from botocore.stub import Stubber
 
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
-from botocore.exceptions import NoRegionError
-from botocore.exceptions import ClientError
-from botocore.stub import Stubber
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]
 

@@ -13,12 +13,14 @@
 """
 Unit test suite for decorators module
 """
-from aws_secretsmanager_caching.decorators import InjectSecretString, InjectKeywordedSecretString
-from aws_secretsmanager_caching.secret_cache import SecretCache
+import json
+import unittest
+
 import botocore
 from botocore.stub import Stubber
-import unittest
-import json
+
+from aws_secretsmanager_caching.decorators import InjectKeywordedSecretString, InjectSecretString
+from aws_secretsmanager_caching.secret_cache import SecretCache
 
 
 class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.TestCase):
