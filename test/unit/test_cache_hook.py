@@ -109,4 +109,4 @@ class TestSecretCacheHook(unittest.TestCase):
                                                                   version_response))
 
         for _ in range(10):
-            self.assertEquals(hooked_secret, cache.get_secret_binary('test')[0:24])
+            self.assertEqual(hooked_secret, cache.get_secret_binary('test')[0:24])

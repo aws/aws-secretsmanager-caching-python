@@ -167,7 +167,7 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
 
         @InjectSecretString('test', cache)
         def function_to_be_decorated(arg1, arg2, arg3):
-            self.assertEquals(arg1, secret)
+            self.assertEqual(arg1, secret)
             self.assertEqual(arg2, 'foo')
             self.assertEqual(arg3, 'bar')
 
@@ -184,7 +184,7 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
 
         @InjectSecretString('test', cache)
         def function_to_be_decorated(arg1, arg2, arg3):
-            self.assertEquals(arg1, secret)
+            self.assertEqual(arg1, secret)
             self.assertEqual(arg2, 'foo')
             self.assertEqual(arg3, 'bar')
 
