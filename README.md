@@ -117,7 +117,7 @@ def function_to_be_decorated(func_username, func_password):
 
 @InjectSecretString('mysimplesecret', cache)
 def function_to_be_decorated(arg1, arg2, arg3):
-    # arg1 contains the cache lookup result of the 'mysecret' secret.
+    # arg1 contains the cache lookup result of the 'mysimplesecret' secret.
     # arg2 and arg3, in this example, must still be passed when calling function_to_be_decorated().
 ```
 
