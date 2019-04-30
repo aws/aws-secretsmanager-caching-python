@@ -138,7 +138,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                                                    version_response))
         for _ in range(10):
             self.assertEqual(secret, cache.get_secret_string('test',
-                                                              'AWSCURRENT'))
+                                                             'AWSCURRENT'))
 
     def test_get_secret_string_multiple(self):
         cache = SecretCache(client=self.get_client())
