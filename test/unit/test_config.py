@@ -32,4 +32,4 @@ class TestSecretCacheConfig(unittest.TestCase):
     def test_config_default_version_stage(self):
         stage = 'nothing'
         config = SecretCacheConfig(default_version_stage=stage)
-        self.assertEquals(config.default_version_stage, stage)
+        self.assertEqual(config.default_version_stage, stage)

@@ -109,7 +109,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                                                    versions,
                                                    version_response))
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_string('test'))
+            self.assertEqual(secret, cache.get_secret_string('test'))
 
     def test_get_secret_string_refresh(self):
         secret = 'mysecret'
@@ -124,7 +124,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                                    versions,
                                    version_response))
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_string('test'))
+            self.assertEqual(secret, cache.get_secret_string('test'))
 
     def test_get_secret_string_stage(self):
         secret = 'mysecret'
@@ -137,8 +137,8 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                                                    versions,
                                                    version_response))
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_string('test',
-                                                              'AWSCURRENT'))
+            self.assertEqual(secret, cache.get_secret_string('test',
+                                                             'AWSCURRENT'))
 
     def test_get_secret_string_multiple(self):
         cache = SecretCache(client=self.get_client())
@@ -156,7 +156,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                                                    versions,
                                                    version_response))
         for _ in range(10):
-            self.assertEquals(secret, cache.get_secret_binary('test'))
+            self.assertEqual(secret, cache.get_secret_binary('test'))
 
     def test_get_secret_binary_no_versions(self):
         cache = SecretCache(client=self.get_client())

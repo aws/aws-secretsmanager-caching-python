@@ -59,14 +59,14 @@ class TestLRUCache(unittest.TestCase):
         cache = LRUCache(max_size=1)
         for n in range(100):
             cache.put_if_absent(n, n)
-            self.assertEquals(cache.get(n), n)
+            self.assertEqual(cache.get(n), n)
         for n in range(99):
             self.assertIsNone(cache.get(n))
-        self.assertEquals(cache.get(99), 99)
+        self.assertEqual(cache.get(99), 99)
 
     def test_lru_cache_if_absent(self):
         cache = LRUCache(max_size=1)
         for n in range(100):
             cache.put_if_absent(1000, 1000)
             self.assertIsNone(cache.get(n))
-        self.assertEquals(cache.get(1000), 1000)
+        self.assertEqual(cache.get(1000), 1000)
