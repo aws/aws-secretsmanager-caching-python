@@ -25,7 +25,7 @@ setup(
         'write_to': 'version.txt'
     },
     python_requires='>3.5',
-    install_requires=['botocore'],
+    install_requires=['botocore', 'setuptools_scm'],
     setup_requires=['pytest-runner', 'setuptools-scm'],
     tests_require=['pytest', 'pytest-cov', 'pytest-sugar', 'codecov']
 

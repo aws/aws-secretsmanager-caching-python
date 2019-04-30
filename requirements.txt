@@ -1,1 +1,2 @@
 botocore>=1.12
+setuptools_scm>=3.2
