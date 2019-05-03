@@ -62,7 +62,7 @@ $ pip install -e .
 #### Running Tests
 You can run tests in all supported Python versions using tox. By default, it will run all of the unit and integration tests, but you can also specify your own arguments to past to `pytest`.
 ```bash
-$ tox # runs integ/unit tests, flake8 tests and pylink tests
+$ tox # runs integ/unit tests, flake8 tests and pylint tests
 $ tox -- test/unit/test_decorators.py # runs specific test file
 $ tox -e py37 -- test/integ/ # runs specific test directory
 ```
