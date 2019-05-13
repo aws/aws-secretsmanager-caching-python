@@ -35,7 +35,7 @@ Please review the `requirements.txt` and `dev-requirements.txt` file for specifi
 ### Installation
 Installing the latest release via **pip**:
 ```bash
-$ pip install aws_secretsmanager_caching
+$ pip install aws-secretsmanager-caching
 ```
 
 Installing the latest development release:
@@ -106,7 +106,7 @@ The library also includes several decorator functions to wrap existing function 
 * `@InjectSecretString` - This decorator also expects the secret id and cache as the first and second arguments.  However, this decorator simply returns the result of the cache lookup directly to the first argument of the wrapped function.  The secret does not need to be JSON-based but it must contain a SecretString.
 ```python
 from aws_secretsmanager_caching import SecretCache
-from aws_secretsmanager_caching.decorators import InjectKeywordedSecretString, InjectSecretString
+from aws_secretsmanager_caching import InjectKeywordedSecretString, InjectSecretString
 
 cache = SecretCache()
 
