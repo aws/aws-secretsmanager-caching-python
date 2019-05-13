@@ -39,7 +39,13 @@ class SecretCache:
         if self._client is None:
             self._client = botocore.session.get_session().create_client("secretsmanager")
 
-        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(get_version())
+        try:
+            from .version import version
+        except ModuleNotFoundError:
+            version = '0.0.0'
+
+        self._version = version
+        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(self._version)
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.

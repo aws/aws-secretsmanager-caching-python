@@ -22,10 +22,10 @@ setup(
     ],
     keywords='secretsmanager secrets manager development cache caching client',
     use_scm_version={
-        'write_to': 'version.txt'
+        'write_to': 'src/aws_secretsmanager_caching/version.py'
     },
     python_requires='>3.5',
-    install_requires=['botocore', 'setuptools_scm'],
+    install_requires=['botocore'],
     setup_requires=['pytest-runner', 'setuptools-scm'],
     tests_require=['pytest', 'pytest-cov', 'pytest-sugar', 'codecov']
 
