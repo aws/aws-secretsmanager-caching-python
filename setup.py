@@ -14,18 +14,18 @@ setup(
     packages=find_packages(where="src", exclude=("test",)),
     package_dir={"": "src"},
     classifiers=[
-        'Development Status :: 5 - Stable',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
-        'License :: OSI Approved ::  Apache License',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7'
     ],
     keywords='secretsmanager secrets manager development cache caching client',
     use_scm_version={
-        'write_to': 'version.txt'
+        'write_to': 'src/aws_secretsmanager_caching/version.py'
     },
     python_requires='>3.5',
-    install_requires=['botocore', 'setuptools_scm'],
+    install_requires=['botocore'],
     setup_requires=['pytest-runner', 'setuptools-scm'],
     tests_require=['pytest', 'pytest-cov', 'pytest-sugar', 'codecov']
 

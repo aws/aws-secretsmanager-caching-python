@@ -18,4 +18,4 @@ dist/
 .tox/
 venv/
 env/
-version.txt
+src/aws_secretsmanager_caching/version.py
