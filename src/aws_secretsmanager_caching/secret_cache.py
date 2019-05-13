@@ -14,7 +14,6 @@
 from copy import deepcopy
 
 import botocore.session
-from setuptools_scm import get_version
 
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
