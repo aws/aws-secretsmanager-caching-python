@@ -2,7 +2,9 @@
 
 [MESSAGES CONTROL]
 disable = I0011, # locally-disabled
-          R0903 # too-few-public-methods
+          R0903, # too-few-public-methods
+          C0413, # wrong-import-position (isort is handling this)
+          C0412, # ungrouped-imports (isort is handling this)
 
 [REPORTS]
 # Set the output format. Available formats are text, parseable, colorized, msvs
