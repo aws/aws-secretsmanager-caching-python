@@ -24,7 +24,7 @@ class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
 
     try:
-        __version__ = get_distribution(__name__).version
+        __version__ = get_distribution('aws_secretsmanager_caching').version
     except DistributionNotFound:
         __version__ = '0.0.0'
 
