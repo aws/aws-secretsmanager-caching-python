@@ -14,6 +14,7 @@
 from copy import deepcopy
 
 import botocore.session
+from pkg_resources import DistributionNotFound, get_distribution
 
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
@@ -21,6 +22,11 @@ from .config import SecretCacheConfig
 
 class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
+
+    try:
+        __version__ = get_distribution(__name__).version
+    except DistributionNotFound:
+        __version__ = '0.0.0'
 
     def __init__(self, config=SecretCacheConfig(), client=None):
         """Construct a secret cache using the given configuration and
@@ -38,13 +44,7 @@ class SecretCache:
         if self._client is None:
             self._client = botocore.session.get_session().create_client("secretsmanager")
 
-        try:
-            from .version import version
-        except ModuleNotFoundError:
-            version = '0.0.0'
-
-        self._version = version
-        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(self._version)
+        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(SecretCache.__version__)
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.
