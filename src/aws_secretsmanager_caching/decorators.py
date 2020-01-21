@@ -46,7 +46,7 @@ class InjectSecretString:
             """
             Internal function to execute wrapped function
             """
-            func(secret, *args, **kwargs)
+            return func(secret, *args, **kwargs)
 
         return _wrapped_func
 
@@ -99,6 +99,6 @@ class InjectKeywordedSecretString:
             """
             Internal function to execute wrapped function
             """
-            func(*args, **resolved_kwargs, **kwargs)
+            return func(*args, **resolved_kwargs, **kwargs)
 
         return _wrapped_func

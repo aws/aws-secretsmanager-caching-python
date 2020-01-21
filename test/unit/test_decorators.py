@@ -56,8 +56,9 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.
             self.assertEqual(secret['username'], func_username)
             self.assertEqual(secret['password'], func_password)
             self.assertEqual(keyworded_argument, 'foo')
+            return 'OK'
 
-        function_to_be_decorated()
+        self.assertEqual(function_to_be_decorated(), 'OK')
 
     def test_valid_json_with_mixed_args(self):
         secret = {
@@ -170,8 +171,9 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
             self.assertEqual(arg1, secret)
             self.assertEqual(arg2, 'foo')
             self.assertEqual(arg3, 'bar')
+            return 'OK'
 
-        function_to_be_decorated('foo', 'bar')
+        self.assertEqual(function_to_be_decorated('foo', 'bar'), 'OK')
 
     def test_string_with_additional_kwargs(self):
         secret = 'not json'
