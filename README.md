@@ -27,7 +27,6 @@ For development and testing purposes, this library requires the following additi
 * pytest-sugar
 * codecov
 * pylint
-* isort
 * sphinx
 
 Please review the `requirements.txt` and `dev-requirements.txt` file for specific version requirements.
