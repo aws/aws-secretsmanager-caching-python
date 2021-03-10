@@ -85,7 +85,7 @@ class InjectKeywordedSecretString:
         try:
             secret = json.loads(self.cache.get_secret_string(secret_id=self.secret_id))
         except json.decoder.JSONDecodeError:
-            raise RuntimeError('Cached secret is not valid JSON')
+            raise RuntimeError('Cached secret is not valid JSON') from None
 
         resolved_kwargs = dict()
         for orig_kwarg in self.kwarg_map:
@@ -93,7 +93,7 @@ class InjectKeywordedSecretString:
             try:
                 resolved_kwargs[orig_kwarg] = secret[secret_key]
             except KeyError:
-                raise RuntimeError('Cached secret does not contain key {0}'.format(secret_key))
+                raise RuntimeError('Cached secret does not contain key {0}'.format(secret_key)) from None
 
         def _wrapped_func(*args, **kwargs):
             """
