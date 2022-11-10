@@ -43,7 +43,7 @@ class SecretCache:
         self._client = client
         self._config = deepcopy(config)
         self._cache = LRUCache(max_size=self._config.max_cache_size)
-        boto_config = botocore.config.Config({
+        boto_config = botocore.config.Config(**{
             "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
         })
         if self._client is None:
