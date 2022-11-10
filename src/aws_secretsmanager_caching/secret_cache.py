@@ -13,6 +13,7 @@
 """High level AWS Secrets Manager caching client."""
 from copy import deepcopy
 
+import botocore.config
 import botocore.session
 from pkg_resources import DistributionNotFound, get_distribution
 
@@ -38,13 +39,15 @@ class SecretCache:
         :type client: botocore.client.BaseClient
         :param client: botocore 'secretsmanager' client
         """
+
         self._client = client
         self._config = deepcopy(config)
         self._cache = LRUCache(max_size=self._config.max_cache_size)
+        boto_config = botocore.config.Config({
+            "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
+        })
         if self._client is None:
-            self._client = botocore.session.get_session().create_client("secretsmanager")
-
-        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(SecretCache.__version__)
+            self._client = botocore.session.get_session().create_client("secretsmanager", config=boto_config)
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.
