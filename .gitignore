@@ -18,4 +18,4 @@ dist/
 .tox/
 venv/
 env/
-
+.vscode/
