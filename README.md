@@ -1,5 +1,8 @@
 ## AWS Secrets Manager Python caching client
 
+[![Build](https://github.com/aws/aws-secretsmanager-caching-python/actions/workflows/python-package.yml/badge.svg?event=push)](https://github.com/aws/aws-secretsmanager-caching-python/actions/workflows/python-package.yml)
+[![codecov](https://codecov.io/github/aws/aws-secretsmanager-caching-python/branch/master/graph/badge.svg?token=DkTHUP8lv5)](https://codecov.io/github/aws/aws-secretsmanager-caching-python)
+
 The AWS Secrets Manager Python caching client enables in-process caching of secrets for Python applications.
 
 ## Getting Started
