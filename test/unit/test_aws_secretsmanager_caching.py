@@ -17,10 +17,11 @@ import unittest
 
 import botocore
 import pytest
-from aws_secretsmanager_caching.config import SecretCacheConfig
-from aws_secretsmanager_caching.secret_cache import SecretCache
 from botocore.exceptions import ClientError, NoRegionError
 from botocore.stub import Stubber
+
+from aws_secretsmanager_caching.config import SecretCacheConfig
+from aws_secretsmanager_caching.secret_cache import SecretCache
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]
 
@@ -49,7 +50,13 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
 
     def test_default_session(self):
         try:
-            SecretCache()
+            cache = SecretCache()
+            user_agent_extra = f"AwsSecretCache/{cache.__version__}"
+            user_agent = cache._client.meta.config.user_agent
+
+            self.assertTrue(user_agent.find(user_agent_extra) > 0,
+                            f"User agent: {user_agent} ; \
+                            does not include: {user_agent_extra}")
         except NoRegionError:
             pass
 
