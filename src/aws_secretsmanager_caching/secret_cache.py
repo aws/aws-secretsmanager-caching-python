@@ -66,6 +66,17 @@ class SecretCache:
         )
         return self._cache.get(secret_id)
 
+    def refresh_secret(self, secret_id):
+        """Refresh the secret on demand.
+
+        :type secret_id: str
+        :param secret_id: The secret identifier
+
+        :rtype: None
+        :return: None
+        """
+        return self._get_cached_secret(secret_id).refresh()
+
     def get_secret_string(self, secret_id, version_stage=None):
         """Get the secret string value from the cache.
 

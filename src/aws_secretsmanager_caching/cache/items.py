@@ -192,6 +192,15 @@ class SecretCacheItem(SecretCacheObject):
             return None
         return ids[0]
 
+    def refresh(self):
+        """Perform the actual refresh of the cached secret information on demand.
+
+        :rtype: None
+        :return: None
+        """
+        self._refresh_needed = True
+        self._execute_refresh()
+
     def _execute_refresh(self):
         """Perform the actual refresh of the cached secret information.
 
