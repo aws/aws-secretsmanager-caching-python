@@ -199,7 +199,7 @@ class SecretCacheItem(SecretCacheObject):
         :return: None
         """
         self._refresh_needed = True
-        self._execute_refresh()
+        self.__refresh()
 
     def _execute_refresh(self):
         """Perform the actual refresh of the cached secret information.
