@@ -13,7 +13,7 @@
 import inspect
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import botocore
@@ -39,7 +39,7 @@ class TestAwsSecretsManagerCachingInteg:
     def pre_test_cleanup(self, client):
         logger.info('Starting cleanup operation of previous test secrets...')
         old_secrets = []
-        two_days_ago = datetime.now() - timedelta(days=2)
+        two_days_ago = datetime.now(timezone.utc) - timedelta(days=2)
 
         paginator = client.get_paginator('list_secrets')
         paginator_config = {'PageSize': 10, 'StartingToken': None}
