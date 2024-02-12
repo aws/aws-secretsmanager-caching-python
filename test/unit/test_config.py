@@ -14,8 +14,10 @@
 Unit test suite for items module
 """
 import unittest
+from types import NoneType
 
 from aws_secretsmanager_caching.config import SecretCacheConfig
+from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
 
 
 class TestSecretCacheConfig(unittest.TestCase):
@@ -33,3 +35,7 @@ class TestSecretCacheConfig(unittest.TestCase):
         stage = 'nothing'
         config = SecretCacheConfig(default_version_stage=stage)
         self.assertEqual(config.default_version_stage, stage)
+
+    def test_default_secret_refresh_interval_typing(self):
+        config = SecretCacheConfig()
+        self.assertIsInstance(config.secret_refresh_interval, int)
