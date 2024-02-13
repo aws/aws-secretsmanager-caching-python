@@ -14,10 +14,8 @@
 Unit test suite for items module
 """
 import unittest
-from types import NoneType
 
 from aws_secretsmanager_caching.config import SecretCacheConfig
-from aws_secretsmanager_caching.cache.secret_cache_hook import SecretCacheHook
 
 
 class TestSecretCacheConfig(unittest.TestCase):
