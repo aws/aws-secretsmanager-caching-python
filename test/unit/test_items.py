@@ -50,43 +50,43 @@ class TestSecretCacheObject(unittest.TestCase):
         sco._exception = Exception("test")
         self.assertRaises(Exception, sco.get_secret_value)
     def test_datetime_fix_is_refresh_needed(self):
-        sco = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
+        secret_cached_object = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
 
-        # Used to pass branching requirements (False is not None)
-        sco._next_retry_time = datetime.now(tz=timezone.utc)
-        sco._refresh_needed = False
-        sco._exception = not None
+        # Variable values set in order to be able to test modified line with assert statement (False is not None)
+        secret_cached_object._next_retry_time = datetime.now(tz=timezone.utc)
+        secret_cached_object._refresh_needed = False
+        secret_cached_object._exception = not None
 
-        self.assertTrue(sco._is_refresh_needed())
+        self.assertTrue(secret_cached_object._is_refresh_needed())
 
     def test_datetime_fix__refresh(self):
         exp_factor = 11
 
-        sco = SecretCacheObject(
+        secret_cached_object = SecretCacheObject(
             SecretCacheConfig(exception_retry_delay_base=1, exception_retry_growth_factor=2),
             None, None
         )
-        sco._set_result = Mock(side_effect=Exception("exception used for test"))
-        sco._refresh_needed = True
-        sco._exception_count = exp_factor  # delay = min(1*(2^exp_factor) = 2048, 3600)
+        secret_cached_object._set_result = Mock(side_effect=Exception("exception used for test"))
+        secret_cached_object._refresh_needed = True
+        secret_cached_object._exception_count = exp_factor  # delay = min(1*(2^exp_factor) = 2048, 3600)
 
         t_before = datetime.now(tz=timezone.utc)
-        sco._SecretCacheObject__refresh()
+        secret_cached_object._SecretCacheObject__refresh()
         t_after = datetime.now(tz=timezone.utc)
 
         t_before_delay = t_before + timedelta(
-            milliseconds=sco._config.exception_retry_delay_base * (
-                    sco._config.exception_retry_growth_factor ** exp_factor
+            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+                    secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
-        self.assertLessEqual(t_before_delay, sco._next_retry_time)
+        self.assertLessEqual(t_before_delay, secret_cached_object._next_retry_time)
 
         t_after_delay = t_after + timedelta(
-            milliseconds=sco._config.exception_retry_delay_base * (
-                    sco._config.exception_retry_growth_factor ** exp_factor
+            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+                    secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
-        self.assertGreaterEqual(t_after_delay, sco._next_retry_time)
+        self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
 class TestSecretCacheItem(unittest.TestCase):
     def setUp(self):
         pass
@@ -97,21 +97,21 @@ class TestSecretCacheItem(unittest.TestCase):
     def test_datetime_fix_SCI_init(self):
         config = SecretCacheConfig()
         t_before = datetime.now(tz=timezone.utc)
-        sci = SecretCacheItem(config, None, None)
+        secret_cache_item = SecretCacheItem(config, None, None)
         t_after = datetime.now(tz=timezone.utc)
 
-        self.assertGreaterEqual(sci._next_refresh_time, t_before)
-        self.assertLessEqual(sci._next_refresh_time, t_after)
+        self.assertGreaterEqual(secret_cache_item._next_refresh_time, t_before)
+        self.assertLessEqual(secret_cache_item._next_refresh_time, t_after)
     def test_datetime_fix_refresh_needed(self):
         config = SecretCacheConfig()
-        sci = SecretCacheItem(config, None, None)
+        secret_cache_item = SecretCacheItem(config, None, None)
 
-        # Used to pass branching requirements (False is not None)
-        sci._refresh_needed = False
-        sci._exception = False
-        sci._next_retry_time = None
+        # Variable values set in order to be able to test modified line with assert statement (False is not None)
+        secret_cache_item._refresh_needed = False
+        secret_cache_item._exception = False
+        secret_cache_item._next_retry_time = None
 
-        self.assertTrue(sci._is_refresh_needed())
+        self.assertTrue(secret_cache_item._is_refresh_needed())
 
     def test_datetime_fix_execute_refresh(self):
         client_mock = Mock()
@@ -119,16 +119,16 @@ class TestSecretCacheItem(unittest.TestCase):
         client_mock.describe_secret.return_value = "test"
 
         config = SecretCacheConfig()
-        sci = SecretCacheItem(config, client_mock, None)
+        secret_cache_item = SecretCacheItem(config, client_mock, None)
 
         t_before = datetime.now(tz=timezone.utc)
-        sci._execute_refresh()
+        secret_cache_item._execute_refresh()
         t_after = datetime.now(tz=timezone.utc)
 
         # Make sure that the timezone is correctly set
-        self.assertEqual(sci._next_refresh_time.tzinfo, timezone.utc)
+        self.assertEqual(secret_cache_item._next_refresh_time.tzinfo, timezone.utc)
 
         # Check that secret_refresh_interval addition works as intended
-        self.assertGreaterEqual(sci._next_refresh_time, t_before)
+        self.assertGreaterEqual(secret_cache_item._next_refresh_time, t_before)
         t_max_after = t_after + timedelta(seconds=config.secret_refresh_interval)
-        self.assertLessEqual(sci._next_refresh_time, t_max_after)
+        self.assertLessEqual(secret_cache_item._next_refresh_time, t_max_after)
