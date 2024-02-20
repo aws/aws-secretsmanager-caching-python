@@ -13,7 +13,6 @@
 """Secret cache configuration object."""
 
 from copy import deepcopy
-from datetime import timedelta
 
 
 class SecretCacheConfig:
@@ -54,7 +53,7 @@ class SecretCacheConfig:
         "exception_retry_growth_factor": 2,
         "exception_retry_delay_max": 3600,
         "default_version_stage": "AWSCURRENT",
-        "secret_refresh_interval": timedelta(hours=1).total_seconds(),
+        "secret_refresh_interval": 3600,
         "secret_cache_hook": None
     }
 

@@ -16,7 +16,7 @@
 import threading
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import randint
 
 from .lru import LRUCache
@@ -61,7 +61,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             return False
         if self._next_retry_time is None:
             return False
-        return self._next_retry_time <= datetime.utcnow()
+        return self._next_retry_time <= datetime.now(timezone.utc)
 
     @abstractmethod
     def _execute_refresh(self):
@@ -102,7 +102,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             )
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
-            self._next_retry_time = datetime.utcnow() + timedelta(milliseconds=delay)
+            self._next_retry_time = datetime.now(timezone.utc) + timedelta(milliseconds=delay)
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -156,7 +156,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         super(SecretCacheItem, self).__init__(config, client, secret_id)
         self._versions = LRUCache(10)
-        self._next_refresh_time = datetime.utcnow()
+        self._next_refresh_time = datetime.now(timezone.utc)
 
     def _is_refresh_needed(self):
         """Determine if the cached item should be refreshed.
@@ -168,7 +168,7 @@ class SecretCacheItem(SecretCacheObject):
             return True
         if self._exception:
             return False
-        return self._next_refresh_time <= datetime.utcnow()
+        return self._next_refresh_time <= datetime.now(timezone.utc)
 
     @staticmethod
     def _get_version_id(result, version_stage):
@@ -200,7 +200,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         result = self._client.describe_secret(SecretId=self._secret_id)
         ttl = self._config.secret_refresh_interval
-        self._next_refresh_time = datetime.utcnow() + timedelta(seconds=randint(round(ttl / 2), ttl))
+        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), ttl))
         return result
 
     def _get_version(self, version_stage):
