@@ -200,7 +200,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         result = self._client.describe_secret(SecretId=self._secret_id)
         ttl = self._config.secret_refresh_interval
-        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), ttl))
+        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), round(ttl)))
         return result
 
     def _get_version(self, version_stage):
