@@ -77,17 +77,18 @@ class TestSecretCacheObject(unittest.TestCase):
 
         t_before_delay = t_before + timedelta(
             milliseconds=secret_cached_object._config.exception_retry_delay_base * (
-                    secret_cached_object._config.exception_retry_growth_factor ** exp_factor
+                secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertLessEqual(t_before_delay, secret_cached_object._next_retry_time)
 
         t_after_delay = t_after + timedelta(
             milliseconds=secret_cached_object._config.exception_retry_delay_base * (
-                    secret_cached_object._config.exception_retry_growth_factor ** exp_factor
+                secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
+
 
 class TestSecretCacheItem(unittest.TestCase):
     def setUp(self):
