@@ -99,3 +99,11 @@ class SecretCache:
         if secret is None:
             return secret
         return secret.get("SecretBinary")
+
+    def refresh_secret_now(self, secret_id):
+        """Immediately refresh the secret in the cache.
+
+        :type secret_id: str
+        :param secret_id: The secret identifier
+        """
+        self._get_cached_secret(secret_id).refresh_secret_now()
