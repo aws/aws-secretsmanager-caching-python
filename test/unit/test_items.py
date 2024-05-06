@@ -50,6 +50,30 @@ class TestSecretCacheObject(unittest.TestCase):
         sco._exception = Exception("test")
         self.assertRaises(Exception, sco.get_secret_value)
 
+    def test_refresh_now(self):
+        config = SecretCacheConfig()
+
+        client_mock = Mock()
+        client_mock.describe_secret = Mock()
+        client_mock.describe_secret.return_value = "test"
+        secret_cache_item = SecretCacheItem(config, client_mock, None)
+        secret_cache_item._next_refresh_time = datetime.now(timezone.utc) + timedelta(days=30)
+        secret_cache_item._refresh_needed = False
+        self.assertFalse(secret_cache_item._is_refresh_needed())
+
+        old_refresh_time = secret_cache_item._next_refresh_time
+        self.assertTrue(old_refresh_time > datetime.now(timezone.utc) + timedelta(days=29))
+
+        secret_cache_item.refresh_secret_now()
+        new_refresh_time = secret_cache_item._next_refresh_time
+
+        ttl = config.secret_refresh_interval
+
+        # New refresh time will use the ttl and will be less than the old refresh time that was artificially set a month ahead
+        # The new refresh time will be between now + ttl and now + (ttl / 2) if the secret was immediately refreshed
+        self.assertTrue(new_refresh_time < old_refresh_time and new_refresh_time < datetime.now(timezone.utc) + timedelta(ttl))
+
+        
     def test_datetime_fix_is_refresh_needed(self):
         secret_cached_object = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
 

@@ -169,6 +169,31 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         cache = SecretCache(client=self.get_client())
         self.assertIsNone(cache.get_secret_binary('test'))
 
+    def test_refresh_secret_now(self):
+        secret = 'mysecret'
+        response = {}
+        versions = {
+            '01234567890123456789012345678901': ['AWSCURRENT']
+        }
+        version_response = {'SecretString': secret}
+        cache = SecretCache(client=self.get_client(response,
+                                                   versions,
+                                                   version_response))
+        secret = cache._get_cached_secret('test')
+        self.assertIsNotNone(secret)
+
+        old_refresh_time = secret._next_refresh_time
+
+        secret = cache._get_cached_secret('test')
+        self.assertTrue(old_refresh_time == secret._next_refresh_time)
+
+        cache.refresh_secret_now('test')
+
+        secret = cache._get_cached_secret('test')
+
+        new_refresh_time = secret._next_refresh_time
+        self.assertTrue(new_refresh_time > old_refresh_time)
+
     def test_get_secret_string_exception(self):
         client = botocore.session.get_session().create_client(
             'secretsmanager', region_name='us-west-2')

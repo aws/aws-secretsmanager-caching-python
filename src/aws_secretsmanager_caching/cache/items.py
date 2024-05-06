@@ -14,6 +14,7 @@
 # pylint: disable=super-with-arguments
 
 import threading
+import time
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -24,7 +25,8 @@ from .lru import LRUCache
 
 class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
-
+    # Jitter max for refresh now
+    FORCE_REFRESH_JITTER_SLEEP = 5000
     __metaclass__ = ABCMeta
 
     def __init__(self, config, client, secret_id):
@@ -121,6 +123,26 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             if not value and self._exception:
                 raise self._exception
             return deepcopy(value)
+        
+    def refresh_secret_now(self):
+        """Force a refresh of the cached secret.
+        :rtype: None
+        :return: None
+        """
+        self._refresh_needed = True
+
+        # Generate a random number to have a sleep jitter to not get stuck in a retry loop
+        sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
+
+        if self._exception is not None:
+            current_time_millis = int(datetime.now(timezone.utc).timestamp() * 1000)
+            exception_sleep = self._next_retry_time - current_time_millis
+            sleep = max(exception_sleep, sleep)
+
+        # Divide by 1000 for millis
+        time.sleep(sleep / 1000)
+
+        self._execute_refresh()
 
     def _get_result(self):
         """Get the stored result using a hook if present"""
