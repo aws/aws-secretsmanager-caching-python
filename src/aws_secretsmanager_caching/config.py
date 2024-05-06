@@ -67,7 +67,7 @@ class SecretCacheConfig:
                     options[key] = value
                 # The key must exist in the available options
                 else:
-                    raise TypeError("Unexpected keyword argument '%s'" % key)
+                    raise TypeError(f"Unexpected keyword argument {key}")
 
         # Set the attributes based on the config options
         for key, value in options.items():
