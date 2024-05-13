@@ -123,7 +123,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             if not value and self._exception:
                 raise self._exception
             return deepcopy(value)
-        
+
     def refresh_secret_now(self):
         """Force a refresh of the cached secret.
         :rtype: None

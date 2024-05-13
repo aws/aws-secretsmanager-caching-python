@@ -73,7 +73,6 @@ class TestSecretCacheObject(unittest.TestCase):
         # The new refresh time will be between now + ttl and now + (ttl / 2) if the secret was immediately refreshed
         self.assertTrue(new_refresh_time < old_refresh_time and new_refresh_time < datetime.now(timezone.utc) + timedelta(ttl))
 
-        
     def test_datetime_fix_is_refresh_needed(self):
         secret_cached_object = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
 
