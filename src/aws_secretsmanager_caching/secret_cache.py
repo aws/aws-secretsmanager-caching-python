@@ -13,9 +13,9 @@
 """High level AWS Secrets Manager caching client."""
 from copy import deepcopy
 
+from importlib.metadata import version, PackageNotFoundError
 import botocore.config
 import botocore.session
-from pkg_resources import DistributionNotFound, get_distribution
 
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
@@ -25,8 +25,8 @@ class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
 
     try:
-        __version__ = get_distribution('aws_secretsmanager_caching').version
-    except DistributionNotFound:
+        __version__ = version('aws_secretsmanager_caching')
+    except PackageNotFoundError:
         __version__ = '0.0.0'
 
     def __init__(self, config=SecretCacheConfig(), client=None):

@@ -23,6 +23,7 @@ To use this client you must have:
 This library requires the following standard dependencies:
 * botocore
 * setuptools_scm
+* setuptools
 
 For development and testing purposes, this library requires the following additional dependencies:
 * pytest
@@ -31,6 +32,8 @@ For development and testing purposes, this library requires the following additi
 * codecov
 * pylint
 * sphinx
+* flake8
+* tox
 
 Please review the `requirements.txt` and `dev-requirements.txt` file for specific version requirements.
 
