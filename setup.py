@@ -22,7 +22,7 @@ setup(
     ],
     keywords='secretsmanager secrets manager development cache caching client',
     use_scm_version=True,
-    python_requires='>3.5',
+    python_requires='>=3.8',
     install_requires=['botocore'],
     setup_requires=['pytest-runner', 'setuptools-scm'],
     tests_require=['pytest', 'pytest-cov', 'pytest-sugar', 'codecov']
