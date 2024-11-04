@@ -127,10 +127,10 @@ def function_to_be_decorated(arg1, arg2, arg3):
 ```
 
 ## Getting Help
-We use GitHub issues for tracking bugs and caching library feature requests and have limited bandwidth to address them. Please use these community resources for getting help:
+Please use these community resources for getting help:
 * Ask a question on [Stack Overflow](https://stackoverflow.com/) and tag it with [aws-secrets-manager](https://stackoverflow.com/questions/tagged/aws-secrets-manager).
 * Open a support ticket with [AWS Support](https://console.aws.amazon.com/support/home#/)
-* if it turns out that you may have found a bug, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-python/issues/new). 
+* If it turns out that you may have found a bug, or have a feature request, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-python/issues/new). 
 ## License
 
 This library is licensed under the Apache 2.0 License. 
