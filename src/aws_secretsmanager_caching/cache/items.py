@@ -14,9 +14,10 @@
 # pylint: disable=super-with-arguments
 
 import threading
+import time
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from random import randint
 
 from .lru import LRUCache
@@ -24,7 +25,8 @@ from .lru import LRUCache
 
 class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
-
+    # Jitter max for refresh now
+    FORCE_REFRESH_JITTER_SLEEP = 5000
     __metaclass__ = ABCMeta
 
     def __init__(self, config, client, secret_id):
@@ -61,7 +63,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             return False
         if self._next_retry_time is None:
             return False
-        return self._next_retry_time <= datetime.utcnow()
+        return self._next_retry_time <= datetime.now(timezone.utc)
 
     @abstractmethod
     def _execute_refresh(self):
@@ -102,7 +104,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             )
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
-            self._next_retry_time = datetime.utcnow() + timedelta(milliseconds=delay)
+            self._next_retry_time = datetime.now(timezone.utc) + timedelta(milliseconds=delay)
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -121,6 +123,26 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             if not value and self._exception:
                 raise self._exception
             return deepcopy(value)
+
+    def refresh_secret_now(self):
+        """Force a refresh of the cached secret.
+        :rtype: None
+        :return: None
+        """
+        self._refresh_needed = True
+
+        # Generate a random number to have a sleep jitter to not get stuck in a retry loop
+        sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
+
+        if self._exception is not None:
+            current_time_millis = int(datetime.now(timezone.utc).timestamp() * 1000)
+            exception_sleep = self._next_retry_time - current_time_millis
+            sleep = max(exception_sleep, sleep)
+
+        # Divide by 1000 for millis
+        time.sleep(sleep / 1000)
+
+        self._execute_refresh()
 
     def _get_result(self):
         """Get the stored result using a hook if present"""
@@ -156,7 +178,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         super(SecretCacheItem, self).__init__(config, client, secret_id)
         self._versions = LRUCache(10)
-        self._next_refresh_time = datetime.utcnow()
+        self._next_refresh_time = datetime.now(timezone.utc)
 
     def _is_refresh_needed(self):
         """Determine if the cached item should be refreshed.
@@ -168,7 +190,7 @@ class SecretCacheItem(SecretCacheObject):
             return True
         if self._exception:
             return False
-        return self._next_refresh_time <= datetime.utcnow()
+        return self._next_refresh_time <= datetime.now(timezone.utc)
 
     @staticmethod
     def _get_version_id(result, version_stage):
@@ -200,7 +222,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         result = self._client.describe_secret(SecretId=self._secret_id)
         ttl = self._config.secret_refresh_interval
-        self._next_refresh_time = datetime.utcnow() + timedelta(seconds=randint(round(ttl / 2), ttl))
+        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), ttl))
         return result
 
     def _get_version(self, version_stage):

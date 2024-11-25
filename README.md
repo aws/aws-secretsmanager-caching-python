@@ -1,5 +1,8 @@
 ## AWS Secrets Manager Python caching client
 
+[![Build](https://github.com/aws/aws-secretsmanager-caching-python/actions/workflows/python-package.yml/badge.svg?event=push)](https://github.com/aws/aws-secretsmanager-caching-python/actions/workflows/python-package.yml)
+[![codecov](https://codecov.io/github/aws/aws-secretsmanager-caching-python/branch/master/graph/badge.svg?token=DkTHUP8lv5)](https://codecov.io/github/aws/aws-secretsmanager-caching-python)
+
 The AWS Secrets Manager Python caching client enables in-process caching of secrets for Python applications.
 
 ## Getting Started
@@ -8,7 +11,7 @@ The AWS Secrets Manager Python caching client enables in-process caching of secr
 
 To use this client you must have:
 
-* Python 3.6 or newer.  Use of Python versions 3.5 or older are not supported.
+* Python 3.8 or newer.  Use of Python versions 3.7 or older are not supported.
 * An Amazon Web Services (AWS) account to access secrets stored in AWS Secrets Manager.
   * **To create an AWS account**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and then choose **I am a new user.** Follow the instructions to create an AWS account.
 
@@ -20,6 +23,7 @@ To use this client you must have:
 This library requires the following standard dependencies:
 * botocore
 * setuptools_scm
+* setuptools
 
 For development and testing purposes, this library requires the following additional dependencies:
 * pytest
@@ -28,6 +32,8 @@ For development and testing purposes, this library requires the following additi
 * codecov
 * pylint
 * sphinx
+* flake8
+* tox
 
 Please review the `requirements.txt` and `dev-requirements.txt` file for specific version requirements.
 
@@ -169,10 +175,10 @@ def function_to_be_decorated(secret, arg2, arg3):
 ```
 
 ## Getting Help
-We use GitHub issues for tracking bugs and caching library feature requests and have limited bandwidth to address them. Please use these community resources for getting help:
+Please use these community resources for getting help:
 * Ask a question on [Stack Overflow](https://stackoverflow.com/) and tag it with [aws-secrets-manager](https://stackoverflow.com/questions/tagged/aws-secrets-manager).
 * Open a support ticket with [AWS Support](https://console.aws.amazon.com/support/home#/)
-* if it turns out that you may have found a bug, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-python/issues/new). 
+* If it turns out that you may have found a bug, or have a feature request, please [open an issue](https://github.com/aws/aws-secretsmanager-caching-python/issues/new). 
 ## License
 
 This library is licensed under the Apache 2.0 License. 

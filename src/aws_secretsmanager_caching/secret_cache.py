@@ -13,8 +13,9 @@
 """High level AWS Secrets Manager caching client."""
 from copy import deepcopy
 
+from importlib.metadata import version, PackageNotFoundError
+import botocore.config
 import botocore.session
-from pkg_resources import DistributionNotFound, get_distribution
 
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
@@ -24,8 +25,8 @@ class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
 
     try:
-        __version__ = get_distribution('aws_secretsmanager_caching').version
-    except DistributionNotFound:
+        __version__ = version('aws_secretsmanager_caching')
+    except PackageNotFoundError:
         __version__ = '0.0.0'
 
     def __init__(self, config=SecretCacheConfig(), client=None):
@@ -38,13 +39,15 @@ class SecretCache:
         :type client: botocore.client.BaseClient
         :param client: botocore 'secretsmanager' client
         """
+
         self._client = client
         self._config = deepcopy(config)
         self._cache = LRUCache(max_size=self._config.max_cache_size)
+        boto_config = botocore.config.Config(**{
+            "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
+        })
         if self._client is None:
-            self._client = botocore.session.get_session().create_client("secretsmanager")
-
-        self._client.meta.config.user_agent_extra = "AwsSecretCache/{}".format(SecretCache.__version__)
+            self._client = botocore.session.get_session().create_client("secretsmanager", config=boto_config)
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.
@@ -96,3 +99,11 @@ class SecretCache:
         if secret is None:
             return secret
         return secret.get("SecretBinary")
+
+    def refresh_secret_now(self, secret_id):
+        """Immediately refresh the secret in the cache.
+
+        :type secret_id: str
+        :param secret_id: The secret identifier
+        """
+        self._get_cached_secret(secret_id).refresh_secret_now()

@@ -17,10 +17,11 @@ import unittest
 
 import botocore
 import pytest
-from aws_secretsmanager_caching.config import SecretCacheConfig
-from aws_secretsmanager_caching.secret_cache import SecretCache
 from botocore.exceptions import ClientError, NoRegionError
 from botocore.stub import Stubber
+
+from aws_secretsmanager_caching.config import SecretCacheConfig
+from aws_secretsmanager_caching.secret_cache import SecretCache
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]
 
@@ -49,7 +50,13 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
 
     def test_default_session(self):
         try:
-            SecretCache()
+            cache = SecretCache()
+            user_agent_extra = f"AwsSecretCache/{cache.__version__}"
+            user_agent = cache._client.meta.config.user_agent
+
+            self.assertTrue(user_agent.find(user_agent_extra) > 0,
+                            f"User agent: {user_agent} ; \
+                            does not include: {user_agent_extra}")
         except NoRegionError:
             pass
 
@@ -161,6 +168,31 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
     def test_get_secret_binary_no_versions(self):
         cache = SecretCache(client=self.get_client())
         self.assertIsNone(cache.get_secret_binary('test'))
+
+    def test_refresh_secret_now(self):
+        secret = 'mysecret'
+        response = {}
+        versions = {
+            '01234567890123456789012345678901': ['AWSCURRENT']
+        }
+        version_response = {'SecretString': secret}
+        cache = SecretCache(client=self.get_client(response,
+                                                   versions,
+                                                   version_response))
+        secret = cache._get_cached_secret('test')
+        self.assertIsNotNone(secret)
+
+        old_refresh_time = secret._next_refresh_time
+
+        secret = cache._get_cached_secret('test')
+        self.assertTrue(old_refresh_time == secret._next_refresh_time)
+
+        cache.refresh_secret_now('test')
+
+        secret = cache._get_cached_secret('test')
+
+        new_refresh_time = secret._next_refresh_time
+        self.assertTrue(new_refresh_time > old_refresh_time)
 
     def test_get_secret_string_exception(self):
         client = botocore.session.get_session().create_client(

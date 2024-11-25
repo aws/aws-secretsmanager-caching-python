@@ -33,3 +33,7 @@ class TestSecretCacheConfig(unittest.TestCase):
         stage = 'nothing'
         config = SecretCacheConfig(default_version_stage=stage)
         self.assertEqual(config.default_version_stage, stage)
+
+    def test_default_secret_refresh_interval_typing(self):
+        config = SecretCacheConfig()
+        self.assertIsInstance(config.secret_refresh_interval, int)
