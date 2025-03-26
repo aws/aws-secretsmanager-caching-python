@@ -10,8 +10,10 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-"""Decorators for use with caching library """
+"""Decorators for use with caching library"""
+
 import json
+from functools import wraps
 
 
 class InjectSecretString:
@@ -42,11 +44,18 @@ class InjectSecretString:
 
         secret = self.cache.get_secret_string(secret_id=self.secret_id)
 
+        # Using functools.wraps preserves the metadata of the wrapped function
+        @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
-            return func(secret, *args, **kwargs)
+            # Prevent clobbering self arg in class methods
+            if args and hasattr(args[0].__class__, func.__name__):
+                new_args = (args[0], secret) + args[1:]
+            else:
+                new_args = (secret,) + args
+            return func(*new_args, **kwargs)
 
         return _wrapped_func
 
@@ -85,15 +94,18 @@ class InjectKeywordedSecretString:
         try:
             secret = json.loads(self.cache.get_secret_string(secret_id=self.secret_id))
         except json.decoder.JSONDecodeError:
-            raise RuntimeError('Cached secret is not valid JSON') from None
+            raise RuntimeError("Cached secret is not valid JSON") from None
 
         resolved_kwargs = {}
         for orig_kwarg, secret_key in self.kwarg_map.items():
             try:
                 resolved_kwargs[orig_kwarg] = secret[secret_key]
             except KeyError:
-                raise RuntimeError(f'Cached secret does not contain key {secret_key}') from None
+                raise RuntimeError(
+                    f"Cached secret does not contain key {secret_key}"
+                ) from None
 
+        @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
