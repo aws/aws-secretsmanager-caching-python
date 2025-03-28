@@ -10,7 +10,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-"""Decorators for use with caching library """
+"""Decorators for use with caching library"""
+
 import json
 
 
@@ -40,12 +41,12 @@ class InjectSecretString:
         :return The function with the injected argument.
         """
 
-        secret = self.cache.get_secret_string(secret_id=self.secret_id)
-
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
+            secret = self.cache.get_secret_string(secret_id=self.secret_id)
+
             return func(secret, *args, **kwargs)
 
         return _wrapped_func
@@ -82,22 +83,26 @@ class InjectKeywordedSecretString:
         :return The original function with injected keyword arguments
         """
 
-        try:
-            secret = json.loads(self.cache.get_secret_string(secret_id=self.secret_id))
-        except json.decoder.JSONDecodeError:
-            raise RuntimeError('Cached secret is not valid JSON') from None
-
-        resolved_kwargs = {}
-        for orig_kwarg, secret_key in self.kwarg_map.items():
-            try:
-                resolved_kwargs[orig_kwarg] = secret[secret_key]
-            except KeyError:
-                raise RuntimeError(f'Cached secret does not contain key {secret_key}') from None
-
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
+            try:
+                secret = json.loads(
+                    self.cache.get_secret_string(secret_id=self.secret_id)
+                )
+            except json.decoder.JSONDecodeError:
+                raise RuntimeError("Cached secret is not valid JSON") from None
+
+            resolved_kwargs = {}
+            for orig_kwarg, secret_key in self.kwarg_map.items():
+                try:
+                    resolved_kwargs[orig_kwarg] = secret[secret_key]
+                except KeyError:
+                    raise RuntimeError(
+                        f"Cached secret does not contain key {secret_key}"
+                    ) from None
+
             return func(*args, **resolved_kwargs, **kwargs)
 
         return _wrapped_func
