@@ -42,19 +42,20 @@ class InjectSecretString:
         :return The function with the injected argument.
         """
 
-        secret = self.cache.get_secret_string(secret_id=self.secret_id)
-
         # Using functools.wraps preserves the metadata of the wrapped function
         @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
+            secret = self.cache.get_secret_string(secret_id=self.secret_id)
+
             # Prevent clobbering self arg in class methods
             if args and hasattr(args[0].__class__, func.__name__):
                 new_args = (args[0], secret) + args[1:]
             else:
                 new_args = (secret,) + args
+
             return func(*new_args, **kwargs)
 
         return _wrapped_func
@@ -91,25 +92,27 @@ class InjectKeywordedSecretString:
         :return The original function with injected keyword arguments
         """
 
-        try:
-            secret = json.loads(self.cache.get_secret_string(secret_id=self.secret_id))
-        except json.decoder.JSONDecodeError:
-            raise RuntimeError("Cached secret is not valid JSON") from None
-
-        resolved_kwargs = {}
-        for orig_kwarg, secret_key in self.kwarg_map.items():
-            try:
-                resolved_kwargs[orig_kwarg] = secret[secret_key]
-            except KeyError:
-                raise RuntimeError(
-                    f"Cached secret does not contain key {secret_key}"
-                ) from None
-
         @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
+            try:
+                secret = json.loads(
+                    self.cache.get_secret_string(secret_id=self.secret_id)
+                )
+            except json.decoder.JSONDecodeError:
+                raise RuntimeError("Cached secret is not valid JSON") from None
+
+            resolved_kwargs = {}
+            for orig_kwarg, secret_key in self.kwarg_map.items():
+                try:
+                    resolved_kwargs[orig_kwarg] = secret[secret_key]
+                except KeyError:
+                    raise RuntimeError(
+                        f"Cached secret does not contain key {secret_key}"
+                    ) from None
+
             return func(*args, **resolved_kwargs, **kwargs)
 
         return _wrapped_func
