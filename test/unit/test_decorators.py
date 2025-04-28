@@ -24,8 +24,8 @@ from botocore.stub import Stubber
 
 class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.TestCase):
 
-    def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client('secretsmanager', region_name='us-west-2')
+    def get_client(self, response={}, versions=None, version_response=None, region_name='us-west-2', error=False):
+        client = botocore.session.get_session().create_client('secretsmanager', region_name=region_name)
         stubber = Stubber(client)
         expected_params = {'SecretId': 'test'}
         if versions:
@@ -142,18 +142,45 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.
 
             function_to_be_decorated()
 
+    def test_region_failure(self):
+        secret = {
+            'username': 'secret_username',
+            'password': 'secret_password'
+        }
+
+        secret_string = json.dumps(secret)
+
+        response = {}
+        versions = {
+            '01234567890123456789012345678901': ['AWSCURRENT']
+        }
+        version_response = {'SecretString': secret_string}
+        cache = SecretCache(client=self.get_client(response, versions, version_response, error=True))
+        caches = [SecretCache(client=self.get_client(response, versions, version_response, region_name='us-east-1'))]
+        @InjectKeywordedSecretString(secret_id='test', cache=cache, caches=caches, func_username='username', func_password='password')
+        def function_to_be_decorated(func_username, func_password, keyworded_argument='foo'):
+            self.assertEqual(secret['username'], func_username)
+            self.assertEqual(secret['password'], func_password)
+            self.assertEqual(keyworded_argument, 'foo')
+            return 'OK'
+
+        self.assertEqual(function_to_be_decorated(), 'OK')
+
 
 class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase):
 
-    def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client('secretsmanager', region_name='us-west-2')
+    def get_client(self, response={}, versions=None, version_response=None, region_name='us-west-2', error=False):
+        client = botocore.session.get_session().create_client('secretsmanager', region_name=region_name)
         stubber = Stubber(client)
         expected_params = {'SecretId': 'test'}
-        if versions:
-            response['VersionIdsToStages'] = versions
-        stubber.add_response('describe_secret', response, expected_params)
-        if version_response is not None:
-            stubber.add_response('get_secret_value', version_response)
+        if error:
+            stubber.add_client_error('describe_secret', 'InternalFailure', http_status_code=502)
+        else:
+            if versions:
+                response['VersionIdsToStages'] = versions
+            stubber.add_response('describe_secret', response, expected_params)
+            if version_response is not None:
+                stubber.add_response('get_secret_value', version_response)
         stubber.activate()
         return client
 
@@ -191,3 +218,22 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
             self.assertEqual(arg3, 'bar')
 
         function_to_be_decorated(arg2='foo', arg3='bar')
+
+    def test_region_failure(self):
+        secret = 'not json'
+        response = {}
+        versions = {
+            '01234567890123456789012345678901': ['AWSCURRENT']
+        }
+        version_response = {'SecretString': secret}
+        cache = SecretCache(client=self.get_client(response, versions, version_response, error=True))
+        caches = [SecretCache(client=self.get_client(response, versions, version_response, region_name='us-east-1'))]
+
+        @InjectSecretString('test', cache, caches)
+        def function_to_be_decorated(arg1, arg2, arg3):
+            self.assertEqual(arg1, secret)
+            self.assertEqual(arg2, 'foo')
+            self.assertEqual(arg3, 'bar')
+            return 'OK'
+
+        self.assertEqual(function_to_be_decorated('foo', 'bar'), 'OK')

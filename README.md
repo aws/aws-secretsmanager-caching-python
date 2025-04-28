@@ -95,6 +95,35 @@ cache = SecretCache(config=cache_config, client=client)
 secret = cache.get_secret_string('mysecret')
 ```
 
+#### Cross-account access
+In a case when Secrets Manager isolated in a different account, the client can use cross-account access with assumed role as following:
+```python
+from aws_secretsmanager_caching import SecretCache
+
+def assume_account_role(account_id, role_name, duration=900):
+    client = botocore.session.get_session().create_client("sts")
+    role_arn = f"arn:aws:iam::{account_id}:role/{role_name}"
+    session_name = "SecretCacheSession"
+    response = client.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName=session_name,
+        DurationSeconds=duration
+    )
+    session = botocore.session.Session()
+    session.set_credentials(
+        access_key=response["Credentials"]["AccessKeyId"],
+        secret_key=response["Credentials"]["SecretAccessKey"],
+        token=response["Credentials"]["SessionToken"]
+    )
+    return session
+
+session = assume_account_role(account_id="0123456789012", role_name="RoleToAssume", duration=3600)
+client = session.create_client('secretsmanager')
+cache = SecretCache(config=cache_config, client=client)
+
+secret = cache.get_secret_string('mysecret')
+```
+
 #### Cache Configuration
 You can configure the cache config object with the following parameters:
 * `max_cache_size` - The maximum number of secrets to cache.  The default value is `1024`.
@@ -124,6 +153,25 @@ def function_to_be_decorated(func_username, func_password):
 def function_to_be_decorated(arg1, arg2, arg3):
     # arg1 contains the cache lookup result of the 'mysimplesecret' secret.
     # arg2 and arg3, in this example, must still be passed when calling function_to_be_decorated().
+```
+
+
+##### Multi-region outage failover
+Both decorators also accepts a cache list for a multi-region outage failover case (this requires enabled multi-region secrets replication).
+
+```python
+from aws_secretsmanager_caching import InjectKeywordedSecretString
+
+
+regions = ["us-west-2", "us-east-1", "us-east-2"]
+session = assume_account_role(account_id="0123456789012", role_name="RoleToAssume")
+clients = (session.create_client("secretsmanager", region) for region in regions)
+replica = [SecretCache(client=client) for client in clients]
+
+
+@InjectSecretString(secret_id='mysimplesecret', cache=replica[0], caches=replica[1:])
+def function_to_be_decorated(secret, arg2, arg3):
+    pass
 ```
 
 ## Getting Help
