@@ -13,6 +13,7 @@
 """Decorators for use with caching library"""
 
 import json
+from functools import wraps
 
 
 class InjectSecretString:
@@ -41,13 +42,21 @@ class InjectSecretString:
         :return The function with the injected argument.
         """
 
+        # Using functools.wraps preserves the metadata of the wrapped function
+        @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function
             """
             secret = self.cache.get_secret_string(secret_id=self.secret_id)
 
-            return func(secret, *args, **kwargs)
+            # Prevent clobbering self arg in class methods
+            if args and hasattr(args[0].__class__, func.__name__):
+                new_args = (args[0], secret) + args[1:]
+            else:
+                new_args = (secret,) + args
+
+            return func(*new_args, **kwargs)
 
         return _wrapped_func
 
@@ -83,6 +92,7 @@ class InjectKeywordedSecretString:
         :return The original function with injected keyword arguments
         """
 
+        @wraps(func)
         def _wrapped_func(*args, **kwargs):
             """
             Internal function to execute wrapped function

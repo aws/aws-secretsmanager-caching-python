@@ -37,6 +37,8 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Lint with PyLint
       run: pylint --rcfile=.pylintrc src/aws_secretsmanager_caching
+    - name: Check formatting with Ruff
+      uses: astral-sh/ruff-action@v3
     - name: Test with pytest
       run: |
         pytest test/unit/
