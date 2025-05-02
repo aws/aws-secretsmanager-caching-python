@@ -105,9 +105,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             )
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
-            self._next_retry_time = datetime.now(timezone.utc) + timedelta(
-                milliseconds=delay
-            )
+            self._next_retry_time = datetime.now(timezone.utc) + timedelta(milliseconds=delay)
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -215,11 +213,7 @@ class SecretCacheItem(SecretCacheObject):
             return None
         if "VersionIdsToStages" not in result:
             return None
-        ids = [
-            key
-            for (key, value) in result["VersionIdsToStages"].items()
-            if version_stage in value
-        ]
+        ids = [key for (key, value) in result["VersionIdsToStages"].items() if version_stage in value]
         if not ids:
             return None
         return ids[0]
@@ -232,9 +226,7 @@ class SecretCacheItem(SecretCacheObject):
         """
         result = self._client.describe_secret(SecretId=self._secret_id)
         ttl = self._config.secret_refresh_interval
-        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(
-            seconds=randint(round(ttl / 2), ttl)
-        )
+        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), ttl))
         return result
 
     def _get_version(self, version_stage):
@@ -286,9 +278,7 @@ class SecretCacheVersion(SecretCacheObject):
         :rtype: dict
         :return: The result of GetSecretValue for the version.
         """
-        return self._client.get_secret_value(
-            SecretId=self._secret_id, VersionId=self._version_id
-        )
+        return self._client.get_secret_value(SecretId=self._secret_id, VersionId=self._version_id)
 
     def _get_version(self, version_stage):
         """Get the cached version information for the given stage.

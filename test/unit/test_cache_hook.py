@@ -56,9 +56,7 @@ class TestSecretCacheHook(unittest.TestCase):
         pass
 
     def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
+        client = botocore.session.get_session().create_client("secretsmanager", region_name="us-west-2")
 
         stubber = Stubber(client)
         expected_params = {"SecretId": "test"}
@@ -83,9 +81,7 @@ class TestSecretCacheHook(unittest.TestCase):
         hook = DummySecretCacheHook()
         config = SecretCacheConfig(secret_cache_hook=hook)
 
-        cache = SecretCache(
-            config=config, client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(config=config, client=self.get_client(response, versions, version_response))
 
         for _ in range(10):
             fetched_secret = cache.get_secret_string("test")
@@ -101,9 +97,7 @@ class TestSecretCacheHook(unittest.TestCase):
         hook = DummySecretCacheHook()
         config = SecretCacheConfig(secret_cache_hook=hook)
 
-        cache = SecretCache(
-            config=config, client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(config=config, client=self.get_client(response, versions, version_response))
 
         for _ in range(10):
             self.assertEqual(hooked_secret, cache.get_secret_binary("test")[0:24])

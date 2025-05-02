@@ -50,9 +50,7 @@ class SecretCache:
             }
         )
         if self._client is None:
-            self._client = botocore.session.get_session().create_client(
-                "secretsmanager", config=boto_config
-            )
+            self._client = botocore.session.get_session().create_client("secretsmanager", config=boto_config)
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.
@@ -68,9 +66,7 @@ class SecretCache:
             return secret
         self._cache.put_if_absent(
             secret_id,
-            SecretCacheItem(
-                config=self._config, client=self._client, secret_id=secret_id
-            ),
+            SecretCacheItem(config=self._config, client=self._client, secret_id=secret_id),
         )
         return self._cache.get(secret_id)
 

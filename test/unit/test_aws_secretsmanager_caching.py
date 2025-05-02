@@ -32,9 +32,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         pass
 
     def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
+        client = botocore.session.get_session().create_client("secretsmanager", region_name="us-west-2")
 
         stubber = Stubber(client)
         expected_params = {"SecretId": "test"}
@@ -74,18 +72,14 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"Name": "test"}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         self.assertIsNone(cache.get_secret_string("test"))
 
     def test_get_secret_string_no_current(self):
         response = {}
         versions = {"01234567890123456789012345678901": ["NOTCURRENT"]}
         version_response = {"Name": "test"}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         self.assertIsNone(cache.get_secret_string("test"))
 
     def test_get_secret_string_no_versions(self):
@@ -97,9 +91,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         self.assertIsNone(cache.get_secret_string("test"))
 
     def test_get_secret_string(self):
@@ -107,9 +99,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         for _ in range(10):
             self.assertEqual(secret, cache.get_secret_string("test"))
 
@@ -130,9 +120,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         for _ in range(10):
             self.assertEqual(secret, cache.get_secret_string("test", "AWSCURRENT"))
 
@@ -146,9 +134,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretBinary": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         for _ in range(10):
             self.assertEqual(secret, cache.get_secret_binary("test"))
 
@@ -161,9 +147,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
         secret = cache._get_cached_secret("test")
         self.assertIsNotNone(secret)
 
@@ -180,9 +164,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         self.assertTrue(new_refresh_time > old_refresh_time)
 
     def test_get_secret_string_exception(self):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
+        client = botocore.session.get_session().create_client("secretsmanager", region_name="us-west-2")
 
         stubber = Stubber(client)
         cache = SecretCache(client=client)

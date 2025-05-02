@@ -23,9 +23,7 @@ from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
 from botocore.exceptions import ClientError, HTTPClientError, NoCredentialsError
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -51,9 +49,7 @@ class TestAwsSecretsManagerCachingInteg:
                 logger.info("Fetching results from ListSecretValue...")
                 for secret in page["SecretList"]:
                     if (
-                        secret["Name"].startswith(
-                            TestAwsSecretsManagerCachingInteg.fixture_prefix
-                        )
+                        secret["Name"].startswith(TestAwsSecretsManagerCachingInteg.fixture_prefix)
                         and (secret["LastChangedDate"] > two_days_ago)
                         and (secret["LastAccessedDate"] > two_days_ago)
                     ):
@@ -65,11 +61,7 @@ class TestAwsSecretsManagerCachingInteg:
                     break
                 time.sleep(0.5)
         except ClientError as e:
-            logger.error(
-                "Got ClientError {0} while calling ListSecrets".format(
-                    e.response["Error"]["Code"]
-                )
-            )
+            logger.error("Got ClientError {0} while calling ListSecrets".format(e.response["Error"]["Code"]))
         except HTTPClientError:
             logger.error("Got HTTPClientError while calling ListSecrets")
         except NoCredentialsError:
@@ -85,17 +77,12 @@ class TestAwsSecretsManagerCachingInteg:
                 client.delete_secret(SecretId=secret["Name"])
             except ClientError as e:
                 logger.error(
-                    "Got ClientError {0} while calling "
-                    "DeleteSecret for secret {1}".format(
+                    "Got ClientError {0} while calling DeleteSecret for secret {1}".format(
                         e.response["Error"]["Code"], secret["Name"]
                     )
                 )
             except HTTPClientError:
-                logger.error(
-                    "Got HTTPClientError while calling DeleteSecret for secret {0}".format(
-                        secret["Name"]
-                    )
-                )
+                logger.error("Got HTTPClientError while calling DeleteSecret for secret {0}".format(secret["Name"]))
             time.sleep(0.5)
 
         yield None
@@ -129,9 +116,7 @@ class TestAwsSecretsManagerCachingInteg:
             )
 
     def test_get_secret_string_refresh(self, client, secret_string):
-        cache = SecretCache(
-            config=SecretCacheConfig(secret_refresh_interval=1), client=client
-        )
+        cache = SecretCache(config=SecretCacheConfig(secret_refresh_interval=1), client=client)
         secret = client.get_secret_value(SecretId=secret_string["ARN"])["SecretString"]
 
         for _ in range(10):
@@ -188,18 +173,16 @@ class TestAwsSecretsManagerCachingInteg:
         )
 
         secret = client.create_secret(Name=name, SecretString="test")
-        client.put_secret_value(
-            SecretId=secret["ARN"], SecretString="test2", VersionStages=["AWSCURRENT"]
-        )
+        client.put_secret_value(SecretId=secret["ARN"], SecretString="test2", VersionStages=["AWSCURRENT"])
 
         yield client.describe_secret(SecretId=secret["ARN"])
         client.delete_secret(SecretId=secret["ARN"], ForceDeleteWithoutRecovery=True)
 
     def test_get_secret_string_stage(self, client, secret_string_stage):
         cache = SecretCache(client=client)
-        secret = client.get_secret_value(
-            SecretId=secret_string_stage["ARN"], VersionStage="AWSPREVIOUS"
-        )["SecretString"]
+        secret = client.get_secret_value(SecretId=secret_string_stage["ARN"], VersionStage="AWSPREVIOUS")[
+            "SecretString"
+        ]
 
         for _ in range(10):
             assert (

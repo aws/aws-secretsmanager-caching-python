@@ -98,9 +98,7 @@ class InjectKeywordedSecretString:
             Internal function to execute wrapped function
             """
             try:
-                secret = json.loads(
-                    self.cache.get_secret_string(secret_id=self.secret_id)
-                )
+                secret = json.loads(self.cache.get_secret_string(secret_id=self.secret_id))
             except json.decoder.JSONDecodeError:
                 raise RuntimeError("Cached secret is not valid JSON") from None
 
@@ -109,9 +107,7 @@ class InjectKeywordedSecretString:
                 try:
                     resolved_kwargs[orig_kwarg] = secret[secret_key]
                 except KeyError:
-                    raise RuntimeError(
-                        f"Cached secret does not contain key {secret_key}"
-                    ) from None
+                    raise RuntimeError(f"Cached secret does not contain key {secret_key}") from None
 
             return func(*args, **resolved_kwargs, **kwargs)
 

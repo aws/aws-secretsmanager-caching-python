@@ -26,13 +26,9 @@ from aws_secretsmanager_caching.secret_cache import SecretCache
 from botocore.stub import Stubber
 
 
-class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
-    unittest.TestCase
-):
+class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.TestCase):
     def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
+        client = botocore.session.get_session().create_client("secretsmanager", region_name="us-west-2")
         stubber = Stubber(client)
         expected_params = {"SecretId": "test"}
         if versions:
@@ -51,9 +47,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret_string}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         @InjectKeywordedSecretString(
             secret_id="test",
@@ -61,9 +55,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
             func_username="username",
             func_password="password",
         )
-        def function_to_be_decorated(
-            func_username, func_password, keyworded_argument="foo"
-        ):
+        def function_to_be_decorated(func_username, func_password, keyworded_argument="foo"):
             self.assertEqual(secret["username"], func_username)
             self.assertEqual(secret["password"], func_password)
             self.assertEqual(keyworded_argument, "foo")
@@ -79,13 +71,9 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret_string}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
-        @InjectKeywordedSecretString(
-            secret_id="test", cache=cache, arg2="username", arg3="password"
-        )
+        @InjectKeywordedSecretString(secret_id="test", cache=cache, arg2="username", arg3="password")
         def function_to_be_decorated(arg1, arg2, arg3, arg4="bar"):
             self.assertEqual(arg1, "foo")
             self.assertEqual(secret["username"], arg2)
@@ -102,16 +90,10 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret_string}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
-        @InjectKeywordedSecretString(
-            "test", cache=cache, func_username="username", func_password="password"
-        )
-        def function_to_be_decorated(
-            func_username, func_password, keyworded_argument="foo"
-        ):
+        @InjectKeywordedSecretString("test", cache=cache, func_username="username", func_password="password")
+        def function_to_be_decorated(func_username, func_password, keyworded_argument="foo"):
             self.assertEqual(secret["username"], func_username)
             self.assertEqual(secret["password"], func_password)
             self.assertEqual(keyworded_argument, "foo")
@@ -123,9 +105,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         with self.assertRaises((RuntimeError, json.decoder.JSONDecodeError)):
 
@@ -135,9 +115,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
                 func_username="username",
                 func_passsword="password",
             )
-            def function_to_be_decorated(
-                func_username, func_password, keyworded_argument="foo"
-            ):
+            def function_to_be_decorated(func_username, func_password, keyworded_argument="foo"):
                 return
 
             function_to_be_decorated()
@@ -148,9 +126,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret_string}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         with self.assertRaises((RuntimeError, ValueError)):
 
@@ -160,9 +136,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
                 func_username="username",
                 func_passsword="password",
             )
-            def function_to_be_decorated(
-                func_username, func_password, keyworded_argument="foo"
-            ):
+            def function_to_be_decorated(func_username, func_password, keyworded_argument="foo"):
                 return
 
             function_to_be_decorated()
@@ -170,9 +144,7 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(
 
 class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase):
     def get_client(self, response={}, versions=None, version_response=None):
-        client = botocore.session.get_session().create_client(
-            "secretsmanager", region_name="us-west-2"
-        )
+        client = botocore.session.get_session().create_client("secretsmanager", region_name="us-west-2")
         stubber = Stubber(client)
         expected_params = {"SecretId": "test"}
         if versions:
@@ -188,9 +160,7 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         @InjectSecretString("test", cache)
         def function_to_be_decorated(arg1, arg2, arg3):
@@ -206,9 +176,7 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         @InjectSecretString("test", cache)
         def function_to_be_decorated(arg1, arg2, arg3):
@@ -223,9 +191,7 @@ class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase)
         response = {}
         versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
         version_response = {"SecretString": secret}
-        cache = SecretCache(
-            client=self.get_client(response, versions, version_response)
-        )
+        cache = SecretCache(client=self.get_client(response, versions, version_response))
 
         class TestClass(unittest.TestCase):
             @InjectSecretString("test", cache)

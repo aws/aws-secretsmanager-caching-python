@@ -31,17 +31,13 @@ class TestSecretCacheObject(unittest.TestCase):
 
     class TestObject(SecretCacheObject):
         def __init__(self, config, client, secret_id):
-            super(TestSecretCacheObject.TestObject, self).__init__(
-                config, client, secret_id
-            )
+            super(TestSecretCacheObject.TestObject, self).__init__(config, client, secret_id)
 
         def _execute_refresh(self):
             super(TestSecretCacheObject.TestObject, self)._execute_refresh()
 
         def _get_version(self, version_stage):
-            return super(TestSecretCacheObject.TestObject, self)._get_version(
-                version_stage
-            )
+            return super(TestSecretCacheObject.TestObject, self)._get_version(version_stage)
 
     def test_simple(self):
         sco = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
@@ -60,16 +56,12 @@ class TestSecretCacheObject(unittest.TestCase):
         client_mock.describe_secret = Mock()
         client_mock.describe_secret.return_value = "test"
         secret_cache_item = SecretCacheItem(config, client_mock, None)
-        secret_cache_item._next_refresh_time = datetime.now(timezone.utc) + timedelta(
-            days=30
-        )
+        secret_cache_item._next_refresh_time = datetime.now(timezone.utc) + timedelta(days=30)
         secret_cache_item._refresh_needed = False
         self.assertFalse(secret_cache_item._is_refresh_needed())
 
         old_refresh_time = secret_cache_item._next_refresh_time
-        self.assertTrue(
-            old_refresh_time > datetime.now(timezone.utc) + timedelta(days=29)
-        )
+        self.assertTrue(old_refresh_time > datetime.now(timezone.utc) + timedelta(days=29))
 
         secret_cache_item.refresh_secret_now()
         new_refresh_time = secret_cache_item._next_refresh_time
@@ -79,14 +71,11 @@ class TestSecretCacheObject(unittest.TestCase):
         # New refresh time will use the ttl and will be less than the old refresh time that was artificially set a month ahead
         # The new refresh time will be between now + ttl and now + (ttl / 2) if the secret was immediately refreshed
         self.assertTrue(
-            new_refresh_time < old_refresh_time
-            and new_refresh_time < datetime.now(timezone.utc) + timedelta(ttl)
+            new_refresh_time < old_refresh_time and new_refresh_time < datetime.now(timezone.utc) + timedelta(ttl)
         )
 
     def test_datetime_fix_is_refresh_needed(self):
-        secret_cached_object = TestSecretCacheObject.TestObject(
-            SecretCacheConfig(), None, None
-        )
+        secret_cached_object = TestSecretCacheObject.TestObject(SecretCacheConfig(), None, None)
 
         # Variable values set in order to be able to test modified line with assert statement (False is not None)
         secret_cached_object._next_retry_time = datetime.now(tz=timezone.utc)
@@ -99,19 +88,13 @@ class TestSecretCacheObject(unittest.TestCase):
         exp_factor = 11
 
         secret_cached_object = SecretCacheObject(
-            SecretCacheConfig(
-                exception_retry_delay_base=1, exception_retry_growth_factor=2
-            ),
+            SecretCacheConfig(exception_retry_delay_base=1, exception_retry_growth_factor=2),
             None,
             None,
         )
-        secret_cached_object._set_result = Mock(
-            side_effect=Exception("exception used for test")
-        )
+        secret_cached_object._set_result = Mock(side_effect=Exception("exception used for test"))
         secret_cached_object._refresh_needed = True
-        secret_cached_object._exception_count = (
-            exp_factor  # delay = min(1*(2^exp_factor) = 2048, 3600)
-        )
+        secret_cached_object._exception_count = exp_factor  # delay = min(1*(2^exp_factor) = 2048, 3600)
 
         t_before = datetime.now(tz=timezone.utc)
         secret_cached_object._SecretCacheObject__refresh()
