@@ -11,7 +11,6 @@ disable = I0011, # locally-disabled
 # (visual studio) and html
 output-format=colorized
 
-
 [FORMAT]
 # Maximum number of characters on a single line.
 max-line-length=120

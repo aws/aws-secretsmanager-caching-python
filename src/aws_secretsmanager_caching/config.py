@@ -16,7 +16,6 @@ from copy import deepcopy
 
 
 class SecretCacheConfig:
-
     """Advanced configuration for SecretCache clients.
 
     :type max_cache_size: int
@@ -54,7 +53,7 @@ class SecretCacheConfig:
         "exception_retry_delay_max": 3600,
         "default_version_stage": "AWSCURRENT",
         "secret_refresh_interval": 3600,
-        "secret_cache_hook": None
+        "secret_cache_hook": None,
     }
 
     def __init__(self, **kwargs):

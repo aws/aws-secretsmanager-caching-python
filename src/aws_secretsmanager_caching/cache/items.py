@@ -25,6 +25,7 @@ from .lru import LRUCache
 
 class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
+
     # Jitter max for refresh now
     FORCE_REFRESH_JITTER_SLEEP = 5000
     __metaclass__ = ABCMeta
@@ -100,11 +101,13 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         except Exception as e:  # pylint: disable=broad-except
             self._exception = e
             delay = self._config.exception_retry_delay_base * (
-                self._config.exception_retry_growth_factor ** self._exception_count
+                self._config.exception_retry_growth_factor**self._exception_count
             )
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
-            self._next_retry_time = datetime.now(timezone.utc) + timedelta(milliseconds=delay)
+            self._next_retry_time = datetime.now(timezone.utc) + timedelta(
+                milliseconds=delay
+            )
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -132,7 +135,10 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         self._refresh_needed = True
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
-        sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
+        sleep = randint(
+            int(self.FORCE_REFRESH_JITTER_SLEEP / 2),
+            self.FORCE_REFRESH_JITTER_SLEEP + 1,
+        )
 
         if self._exception is not None:
             current_time_millis = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -209,7 +215,11 @@ class SecretCacheItem(SecretCacheObject):
             return None
         if "VersionIdsToStages" not in result:
             return None
-        ids = [key for (key, value) in result["VersionIdsToStages"].items() if version_stage in value]
+        ids = [
+            key
+            for (key, value) in result["VersionIdsToStages"].items()
+            if version_stage in value
+        ]
         if not ids:
             return None
         return ids[0]
@@ -222,7 +232,9 @@ class SecretCacheItem(SecretCacheObject):
         """
         result = self._client.describe_secret(SecretId=self._secret_id)
         ttl = self._config.secret_refresh_interval
-        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(seconds=randint(round(ttl / 2), ttl))
+        self._next_refresh_time = datetime.now(timezone.utc) + timedelta(
+            seconds=randint(round(ttl / 2), ttl)
+        )
         return result
 
     def _get_version(self, version_stage):
@@ -240,8 +252,10 @@ class SecretCacheItem(SecretCacheObject):
         version = self._versions.get(version_id)
         if version:
             return version.get_secret_value()
-        self._versions.put_if_absent(version_id, SecretCacheVersion(self._config, self._client, self._secret_id,
-                                                                    version_id))
+        self._versions.put_if_absent(
+            version_id,
+            SecretCacheVersion(self._config, self._client, self._secret_id, version_id),
+        )
         return self._versions.get(version_id).get_secret_value()
 
 
@@ -272,7 +286,9 @@ class SecretCacheVersion(SecretCacheObject):
         :rtype: dict
         :return: The result of GetSecretValue for the version.
         """
-        return self._client.get_secret_value(SecretId=self._secret_id, VersionId=self._version_id)
+        return self._client.get_secret_value(
+            SecretId=self._secret_id, VersionId=self._version_id
+        )
 
     def _get_version(self, version_stage):
         """Get the cached version information for the given stage.

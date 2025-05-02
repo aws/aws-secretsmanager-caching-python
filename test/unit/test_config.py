@@ -13,13 +13,13 @@
 """
 Unit test suite for items module
 """
+
 import unittest
 
 from aws_secretsmanager_caching.config import SecretCacheConfig
 
 
 class TestSecretCacheConfig(unittest.TestCase):
-
     def setUp(self):
         pass
 
@@ -27,10 +27,10 @@ class TestSecretCacheConfig(unittest.TestCase):
         pass
 
     def test_simple_config(self):
-        self.assertRaises(TypeError, SecretCacheConfig, no='one')
+        self.assertRaises(TypeError, SecretCacheConfig, no="one")
 
     def test_config_default_version_stage(self):
-        stage = 'nothing'
+        stage = "nothing"
         config = SecretCacheConfig(default_version_stage=stage)
         self.assertEqual(config.default_version_stage, stage)
 

@@ -13,6 +13,7 @@
 """
 Unit test suite for items module
 """
+
 import unittest
 
 import botocore
@@ -28,11 +29,11 @@ class DummySecretCacheHook(SecretCacheHook):
     dict = {}
 
     def put(self, obj):
-        if 'SecretString' in obj:
-            obj['SecretString'] = obj['SecretString'] + "+hook_put"
+        if "SecretString" in obj:
+            obj["SecretString"] = obj["SecretString"] + "+hook_put"
 
-        if 'SecretBinary' in obj:
-            obj['SecretBinary'] = obj['SecretBinary'] + b'11111111'
+        if "SecretBinary" in obj:
+            obj["SecretBinary"] = obj["SecretBinary"] + b"11111111"
 
         key = len(self.dict)
         self.dict[key] = obj
@@ -41,31 +42,31 @@ class DummySecretCacheHook(SecretCacheHook):
     def get(self, cached_obj):
         obj = self.dict[cached_obj]
 
-        if 'SecretString' in obj:
-            obj['SecretString'] = obj['SecretString'] + "+hook_get"
+        if "SecretString" in obj:
+            obj["SecretString"] = obj["SecretString"] + "+hook_get"
 
-        if 'SecretBinary' in obj:
-            obj['SecretBinary'] = obj['SecretBinary'] + b'00000000'
+        if "SecretBinary" in obj:
+            obj["SecretBinary"] = obj["SecretBinary"] + b"00000000"
 
         return obj
 
 
 class TestSecretCacheHook(unittest.TestCase):
-
     def setUp(self):
         pass
 
     def get_client(self, response={}, versions=None, version_response=None):
         client = botocore.session.get_session().create_client(
-            'secretsmanager', region_name='us-west-2')
+            "secretsmanager", region_name="us-west-2"
+        )
 
         stubber = Stubber(client)
-        expected_params = {'SecretId': 'test'}
+        expected_params = {"SecretId": "test"}
         if versions:
-            response['VersionIdsToStages'] = versions
-        stubber.add_response('describe_secret', response, expected_params)
+            response["VersionIdsToStages"] = versions
+        stubber.add_response("describe_secret", response, expected_params)
         if version_response is not None:
-            stubber.add_response('get_secret_value', version_response)
+            stubber.add_response("get_secret_value", version_response)
         stubber.activate()
         return client
 
@@ -73,40 +74,36 @@ class TestSecretCacheHook(unittest.TestCase):
         pass
 
     def test_calls_hook_string(self):
-        secret = 'mysecret'
+        secret = "mysecret"
         hooked_secret = secret + "+hook_put+hook_get"
         response = {}
-        versions = {
-            '01234567890123456789012345678901': ['AWSCURRENT']
-        }
-        version_response = {'SecretString': secret}
+        versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
+        version_response = {"SecretString": secret}
 
         hook = DummySecretCacheHook()
         config = SecretCacheConfig(secret_cache_hook=hook)
 
-        cache = SecretCache(config=config, client=self.get_client(response,
-                                                                  versions,
-                                                                  version_response))
+        cache = SecretCache(
+            config=config, client=self.get_client(response, versions, version_response)
+        )
 
         for _ in range(10):
-            fetched_secret = cache.get_secret_string('test')
+            fetched_secret = cache.get_secret_string("test")
             self.assertTrue(fetched_secret.startswith(hooked_secret))
 
     def test_calls_hook_binary(self):
-        secret = b'01010101'
-        hooked_secret = secret + b'1111111100000000'
+        secret = b"01010101"
+        hooked_secret = secret + b"1111111100000000"
         response = {}
-        versions = {
-            '01234567890123456789012345678901': ['AWSCURRENT']
-        }
-        version_response = {'SecretBinary': secret}
+        versions = {"01234567890123456789012345678901": ["AWSCURRENT"]}
+        version_response = {"SecretBinary": secret}
 
         hook = DummySecretCacheHook()
         config = SecretCacheConfig(secret_cache_hook=hook)
 
-        cache = SecretCache(config=config, client=self.get_client(response,
-                                                                  versions,
-                                                                  version_response))
+        cache = SecretCache(
+            config=config, client=self.get_client(response, versions, version_response)
+        )
 
         for _ in range(10):
-            self.assertEqual(hooked_secret, cache.get_secret_binary('test')[0:24])
+            self.assertEqual(hooked_secret, cache.get_secret_binary("test")[0:24])

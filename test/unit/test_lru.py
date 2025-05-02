@@ -13,6 +13,7 @@
 """
 Unit test suite for high-level functions in aws_secretsmanager_caching
 """
+
 import unittest
 
 import pytest
@@ -22,7 +23,6 @@ pytestmark = [pytest.mark.unit, pytest.mark.local]
 
 
 class TestLRUCache(unittest.TestCase):
-
     def test_lru_cache_max(self):
         cache = LRUCache(max_size=10)
         for n in range(100):

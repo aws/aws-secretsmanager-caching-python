@@ -11,6 +11,7 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 """High level AWS Secrets Manager caching client."""
+
 from copy import deepcopy
 
 from importlib.metadata import version, PackageNotFoundError
@@ -25,9 +26,9 @@ class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
 
     try:
-        __version__ = version('aws_secretsmanager_caching')
+        __version__ = version("aws_secretsmanager_caching")
     except PackageNotFoundError:
-        __version__ = '0.0.0'
+        __version__ = "0.0.0"
 
     def __init__(self, config=SecretCacheConfig(), client=None):
         """Construct a secret cache using the given configuration and
@@ -43,11 +44,15 @@ class SecretCache:
         self._client = client
         self._config = deepcopy(config)
         self._cache = LRUCache(max_size=self._config.max_cache_size)
-        boto_config = botocore.config.Config(**{
-            "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
-        })
+        boto_config = botocore.config.Config(
+            **{
+                "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
+            }
+        )
         if self._client is None:
-            self._client = botocore.session.get_session().create_client("secretsmanager", config=boto_config)
+            self._client = botocore.session.get_session().create_client(
+                "secretsmanager", config=boto_config
+            )
 
     def _get_cached_secret(self, secret_id):
         """Get a cached secret for the given secret identifier.
@@ -62,7 +67,10 @@ class SecretCache:
         if secret is not None:
             return secret
         self._cache.put_if_absent(
-            secret_id, SecretCacheItem(config=self._config, client=self._client, secret_id=secret_id)
+            secret_id,
+            SecretCacheItem(
+                config=self._config, client=self._client, secret_id=secret_id
+            ),
         )
         return self._cache.get(secret_id)
 
