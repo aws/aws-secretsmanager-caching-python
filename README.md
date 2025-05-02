@@ -11,7 +11,7 @@ The AWS Secrets Manager Python caching client enables in-process caching of secr
 
 To use this client you must have:
 
-- Python 3.8 or newer. Use of Python versions 3.7 or older are not supported.
+- Python 3.9 or newer. Use of Python versions 3.8 or older are not supported.
 - An Amazon Web Services (AWS) account to access secrets stored in AWS Secrets Manager.
 
   - **To create an AWS account**, go to [Sign In or Create an AWS Account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) and then choose **I am a new user.** Follow the instructions to create an AWS account.
