@@ -25,6 +25,7 @@ from .lru import LRUCache
 
 class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
+
     # Jitter max for refresh now
     FORCE_REFRESH_JITTER_SLEEP = 5000
     __metaclass__ = ABCMeta
@@ -100,7 +101,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         except Exception as e:  # pylint: disable=broad-except
             self._exception = e
             delay = self._config.exception_retry_delay_base * (
-                self._config.exception_retry_growth_factor ** self._exception_count
+                self._config.exception_retry_growth_factor**self._exception_count
             )
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
@@ -132,7 +133,10 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         self._refresh_needed = True
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
-        sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
+        sleep = randint(
+            int(self.FORCE_REFRESH_JITTER_SLEEP / 2),
+            self.FORCE_REFRESH_JITTER_SLEEP + 1,
+        )
 
         if self._exception is not None:
             current_time_millis = int(datetime.now(timezone.utc).timestamp() * 1000)
@@ -240,8 +244,10 @@ class SecretCacheItem(SecretCacheObject):
         version = self._versions.get(version_id)
         if version:
             return version.get_secret_value()
-        self._versions.put_if_absent(version_id, SecretCacheVersion(self._config, self._client, self._secret_id,
-                                                                    version_id))
+        self._versions.put_if_absent(
+            version_id,
+            SecretCacheVersion(self._config, self._client, self._secret_id, version_id),
+        )
         return self._versions.get(version_id).get_secret_value()
 
 
