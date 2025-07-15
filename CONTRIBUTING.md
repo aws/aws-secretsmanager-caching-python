@@ -43,7 +43,7 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 - Install [Ruff](https://docs.astral.sh/ruff/installation/) and [Prettier](https://prettier.io/docs/install).
   - If using VS Code, install the VS Code extensions for the above.
-- Run `ruff format` and `prettier --write **/*.{md,yml}`, or configure VS Code to format on save using Ruff and Prettier.
+- Run `ruff format` and `prettier --write **/*.{md,yml,yaml}`, or configure VS Code to format on save using Ruff and Prettier.
 
 ## Finding contributions to work on
 
