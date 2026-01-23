@@ -19,6 +19,7 @@ To use this client you must have:
   - **To create a secret in AWS Secrets Manager**, go to [Creating Secrets](https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html) and follow the instructions on that page.
 
   - This library makes use of botocore, the low-level core functionality of the boto3 SDK. For more information on boto3 and botocore, please review the [AWS SDK for Python](https://aws.amazon.com/sdk-for-python/) and [Botocore](https://botocore.amazonaws.com/v1/documentation/api/latest/index.html) documentation.
+- For Post-Quantum TLS support, use OpenSSL 3.5 or newer (system-level dependency).
 
 ### Dependencies
 
