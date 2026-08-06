@@ -17,8 +17,18 @@ import unittest
 from datetime import timezone, datetime, timedelta
 from unittest.mock import Mock
 
+from botocore.exceptions import ClientError, NoCredentialsError, ReadTimeoutError
+
 from aws_secretsmanager_caching.cache.items import SecretCacheObject, SecretCacheItem
 from aws_secretsmanager_caching.config import SecretCacheConfig
+
+
+def _client_error(code, status):
+    """Build a botocore ClientError with the given error code and HTTP status."""
+    return ClientError(
+        {"Error": {"Code": code}, "ResponseMetadata": {"HTTPStatusCode": status}},
+        "DescribeSecret",
+    )
 
 
 class TestSecretCacheObject(unittest.TestCase):
@@ -111,6 +121,60 @@ class TestSecretCacheObject(unittest.TestCase):
             )
         )
         self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
+
+    def test_is_transient_error_classification(self):
+        # Permanent service errors (4xx) -- must not be retried.
+        for code in ("ResourceNotFoundException", "AccessDeniedException",
+                     "InvalidParameterException", "DecryptionFailure",
+                     "ValidationException"):
+            self.assertFalse(
+                SecretCacheObject._is_transient_error(_client_error(code, 400)),
+                f"{code} should be permanent")
+
+        # Throttling is a 4xx but is transient -- must be retried.
+        self.assertTrue(
+            SecretCacheObject._is_transient_error(_client_error("ThrottlingException", 400)))
+
+        # 5xx server-side errors are transient.
+        for code, status in (("InternalServiceError", 500),
+                             ("InternalFailure", 500),
+                             ("ServiceUnavailable", 503)):
+            self.assertTrue(
+                SecretCacheObject._is_transient_error(_client_error(code, status)),
+                f"{code} should be transient")
+
+        # Transport-layer failures are transient; config errors are not.
+        self.assertTrue(
+            SecretCacheObject._is_transient_error(ReadTimeoutError(endpoint_url="https://x")))
+        self.assertFalse(SecretCacheObject._is_transient_error(NoCredentialsError()))
+
+        # Unknown error types default to transient, preserving the previous
+        # behavior of retrying any error we do not recognize as permanent.
+        self.assertTrue(SecretCacheObject._is_transient_error(KeyError("boom")))
+
+    def test_refresh_permanent_error_schedules_no_retry(self):
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._set_result = Mock(side_effect=_client_error("ResourceNotFoundException", 400))
+        sco._refresh_needed = True
+
+        sco._SecretCacheObject__refresh()
+
+        self.assertIsNone(sco._next_retry_time)
+        self.assertFalse(sco._is_refresh_needed())
+        self.assertIsNotNone(sco._exception)
+
+    def test_refresh_permanent_error_clears_stale_retry_time(self):
+        # A permanent error following a transient one must clear the retry
+        # time left behind, otherwise the permanent error keeps being retried.
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._next_retry_time = datetime.now(timezone.utc) - timedelta(seconds=1)
+        sco._set_result = Mock(side_effect=_client_error("ResourceNotFoundException", 400))
+        sco._refresh_needed = True
+
+        sco._SecretCacheObject__refresh()
+
+        self.assertIsNone(sco._next_retry_time)
+        self.assertFalse(sco._is_refresh_needed())
 
 
 class TestSecretCacheItem(unittest.TestCase):
