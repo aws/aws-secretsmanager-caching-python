@@ -1,0 +1,117 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions.
+# After doing that, it will draft a release with the most up to date version
+
+name: Draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (must be in format <MAJOR>.<MINOR>.<PATCH>, e.g. 1.1.1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Verify inputs
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          SEMVER_REGEX="^([0-9]+)\.([0-9]+)\.([0-9]+)$"
+          if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "::error::Invalid version format '$VERSION'. Must match X.Y.Z (e.g., 1.0.4)"
+            exit 1
+          fi
+
+          MAJOR="${BASH_REMATCH[1]}"
+          MINOR="${BASH_REMATCH[2]}"
+          PATCH="${BASH_REMATCH[3]}"
+
+          # Latest released tag, newest first, ignoring anything not vX.Y.Z
+          LATEST_TAG=$(git ls-remote --tags --refs --sort=-v:refname \
+            "https://github.com/${GITHUB_REPOSITORY}.git" \
+            | sed 's#.*refs/tags/##' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | head -n1) || true
+
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "::error::No existing tag matching vX.Y.Z found"
+            exit 1
+          fi
+          echo "Latest released tag: $LATEST_TAG"
+
+          if [[ "$LATEST_TAG" == "v$VERSION" ]]; then
+            echo "::error::v$VERSION is already released"
+            exit 1
+          fi
+
+          [[ "${LATEST_TAG#v}" =~ $SEMVER_REGEX ]]
+          LATEST_MAJOR="${BASH_REMATCH[1]}"
+          LATEST_MINOR="${BASH_REMATCH[2]}"
+          LATEST_PATCH="${BASH_REMATCH[3]}"
+
+          if [[ "$MAJOR" -eq "$LATEST_MAJOR" && "$MINOR" -eq "$LATEST_MINOR" && "$PATCH" -eq $((LATEST_PATCH + 1)) ]]; then
+            BUMP=patch
+          elif [[ "$MAJOR" -eq "$LATEST_MAJOR" && "$MINOR" -eq $((LATEST_MINOR + 1)) && "$PATCH" -eq 0 ]]; then
+            BUMP=minor
+          elif [[ "$MAJOR" -eq $((LATEST_MAJOR + 1)) && "$MINOR" -eq 0 && "$PATCH" -eq 0 ]]; then
+            BUMP=major
+          else
+            echo "::error::v$VERSION is not a valid bump from $LATEST_TAG"
+            exit 1
+          fi
+
+          echo "Releasing v$VERSION ($BUMP bump from $LATEST_TAG)"
+
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r dev-requirements.txt
+          pip install -e .
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Lint with PyLint
+        run: pylint --rcfile=.pylintrc src/aws_secretsmanager_caching
+      - name: Check formatting with Ruff
+        uses: astral-sh/ruff-action@v3
+      - name: Test with pytest
+        run: |
+          pytest test/unit/
+
+  draft-release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Draft release v${{ inputs.version }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --target "$GITHUB_SHA"
+
+          echo "Drafted release v$VERSION"
+          gh release view "v$VERSION" --json url -q .url
+      
