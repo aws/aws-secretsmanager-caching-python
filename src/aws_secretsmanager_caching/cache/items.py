@@ -20,8 +20,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from random import randint
 
-from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, NoRegionError
-
 from .lru import LRUCache
 
 
@@ -52,50 +50,6 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         self._exception_count = 0
         self._refresh_needed = True
         self._next_retry_time = None
-
-    # Throttling is the only transient error that carries a 4xx status, so it
-    # must be matched by error code rather than by the status check below.
-    _THROTTLING_ERROR_CODES = frozenset({
-        "ThrottlingException",
-        "TooManyRequestsException",
-        "Throttling",
-    })
-
-    @staticmethod
-    def _is_transient_error(e):
-        """Determine whether a refresh exception is transient (worth retrying).
-
-        Only configuration errors and clear 4xx client errors (e.g.
-        ResourceNotFound, AccessDenied) are permanent. Everything else --
-        timeouts, throttling, 5xx, and any unrecognized error -- is retried,
-        preserving the previous behavior for errors we do not classify.
-
-        :type e: Exception
-        :param e: The exception raised during refresh.
-
-        :rtype: bool
-        :return: True if the error is transient and should be retried.
-        """
-        # Config errors are BotoCoreErrors but can never succeed on retry.
-        if isinstance(e, (NoCredentialsError, NoRegionError)):
-            return False
-
-        # Other BotoCoreErrors are transport failures (timeouts, connection).
-        if isinstance(e, BotoCoreError):
-            return True
-
-        # Service errors: permanent only for a clear 4xx (throttling excepted).
-        if isinstance(e, ClientError):
-            code = e.response.get("Error", {}).get("Code", "")
-            if code in SecretCacheObject._THROTTLING_ERROR_CODES:
-                return True
-            status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
-            if status is not None and 400 <= status < 500:
-                return False
-            return True
-
-        # Unrecognized error type: retry (preserves previous behavior).
-        return True
 
     def _is_refresh_needed(self):
         """Determine if the cached object should be refreshed.
@@ -145,17 +99,12 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             self._exception_count = 0
         except Exception as e:  # pylint: disable=broad-except
             self._exception = e
-            if self._is_transient_error(e):
-                delay = self._config.exception_retry_delay_base * (
-                    self._config.exception_retry_growth_factor ** self._exception_count
-                )
-                self._exception_count += 1
-                delay = min(delay, self._config.exception_retry_delay_max)
-                self._next_retry_time = datetime.now(timezone.utc) + timedelta(milliseconds=delay)
-            else:
-                # Clear any retry time left over from a prior transient failure
-                # so a permanent error is not automatically retried.
-                self._next_retry_time = None
+            delay = self._config.exception_retry_delay_base * (
+                self._config.exception_retry_growth_factor ** self._exception_count
+            )
+            self._exception_count += 1
+            delay = min(delay, self._config.exception_retry_delay_max)
+            self._next_retry_time = datetime.now(timezone.utc) + timedelta(seconds=delay)
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -186,8 +135,8 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
         if self._exception is not None:
-            current_time_millis = int(datetime.now(timezone.utc).timestamp() * 1000)
-            exception_sleep = self._next_retry_time - current_time_millis
+            now = datetime.now(timezone.utc)
+            exception_sleep = max((self._next_retry_time - now).total_seconds() * 1000, 0)
             sleep = max(exception_sleep, sleep)
 
         # Divide by 1000 for millis

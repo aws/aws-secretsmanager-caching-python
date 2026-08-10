@@ -15,20 +15,10 @@ Unit test suite for items module
 """
 import unittest
 from datetime import timezone, datetime, timedelta
-from unittest.mock import Mock
-
-from botocore.exceptions import ClientError, NoCredentialsError, ReadTimeoutError
+from unittest.mock import Mock, patch
 
 from aws_secretsmanager_caching.cache.items import SecretCacheObject, SecretCacheItem
 from aws_secretsmanager_caching.config import SecretCacheConfig
-
-
-def _client_error(code, status):
-    """Build a botocore ClientError with the given error code and HTTP status."""
-    return ClientError(
-        {"Error": {"Code": code}, "ResponseMetadata": {"HTTPStatusCode": status}},
-        "DescribeSecret",
-    )
 
 
 class TestSecretCacheObject(unittest.TestCase):
@@ -109,72 +99,39 @@ class TestSecretCacheObject(unittest.TestCase):
         t_after = datetime.now(tz=timezone.utc)
 
         t_before_delay = t_before + timedelta(
-            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+            seconds=secret_cached_object._config.exception_retry_delay_base * (
                 secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertLessEqual(t_before_delay, secret_cached_object._next_retry_time)
 
         t_after_delay = t_after + timedelta(
-            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+            seconds=secret_cached_object._config.exception_retry_delay_base * (
                 secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
 
-    def test_is_transient_error_classification(self):
-        # Permanent service errors (4xx) -- must not be retried.
-        for code in ("ResourceNotFoundException", "AccessDeniedException",
-                     "InvalidParameterException", "DecryptionFailure",
-                     "ValidationException"):
-            self.assertFalse(
-                SecretCacheObject._is_transient_error(_client_error(code, 400)),
-                f"{code} should be permanent")
-
-        # Throttling is a 4xx but is transient -- must be retried.
-        self.assertTrue(
-            SecretCacheObject._is_transient_error(_client_error("ThrottlingException", 400)))
-
-        # 5xx server-side errors are transient.
-        for code, status in (("InternalServiceError", 500),
-                             ("InternalFailure", 500),
-                             ("ServiceUnavailable", 503)):
-            self.assertTrue(
-                SecretCacheObject._is_transient_error(_client_error(code, status)),
-                f"{code} should be transient")
-
-        # Transport-layer failures are transient; config errors are not.
-        self.assertTrue(
-            SecretCacheObject._is_transient_error(ReadTimeoutError(endpoint_url="https://x")))
-        self.assertFalse(SecretCacheObject._is_transient_error(NoCredentialsError()))
-
-        # Unknown error types default to transient, preserving the previous
-        # behavior of retrying any error we do not recognize as permanent.
-        self.assertTrue(SecretCacheObject._is_transient_error(KeyError("boom")))
-
-    def test_refresh_permanent_error_schedules_no_retry(self):
+    @patch("aws_secretsmanager_caching.cache.items.time.sleep")
+    def test_refresh_secret_now_with_pending_exception(self, mock_sleep):
+        # Regression test: when a prior refresh failed, _next_retry_time holds a
+        # datetime. The old code subtracted an int (current time in millis) from
+        # that datetime, raising TypeError. refresh_secret_now() must instead
+        # diff the two datetimes and sleep until the scheduled retry time.
         sco = SecretCacheObject(SecretCacheConfig(), None, None)
-        sco._set_result = Mock(side_effect=_client_error("ResourceNotFoundException", 400))
-        sco._refresh_needed = True
+        sco._exception = Exception("prior refresh failure")
+        sco._next_retry_time = datetime.now(timezone.utc) + timedelta(seconds=30)
+        sco._execute_refresh = Mock()
 
-        sco._SecretCacheObject__refresh()
+        # Would have raised TypeError before the fix.
+        sco.refresh_secret_now()
 
-        self.assertIsNone(sco._next_retry_time)
-        self.assertFalse(sco._is_refresh_needed())
-        self.assertIsNotNone(sco._exception)
-
-    def test_refresh_permanent_error_clears_stale_retry_time(self):
-        # A permanent error following a transient one must clear the retry
-        # time left behind, otherwise the permanent error keeps being retried.
-        sco = SecretCacheObject(SecretCacheConfig(), None, None)
-        sco._next_retry_time = datetime.now(timezone.utc) - timedelta(seconds=1)
-        sco._set_result = Mock(side_effect=_client_error("ResourceNotFoundException", 400))
-        sco._refresh_needed = True
-
-        sco._SecretCacheObject__refresh()
-
-        self.assertIsNone(sco._next_retry_time)
-        self.assertFalse(sco._is_refresh_needed())
+        # ~30s until retry -> ~30000ms; time.sleep() receives seconds (ms / 1000).
+        mock_sleep.assert_called_once()
+        slept_seconds = mock_sleep.call_args[0][0]
+        self.assertGreater(slept_seconds, 25)
+        self.assertLess(slept_seconds, 60)
+        sco._execute_refresh.assert_called_once()
 
 
 class TestSecretCacheItem(unittest.TestCase):
