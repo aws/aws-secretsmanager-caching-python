@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions.
 # After doing that, it will draft a release with the most up to date version
 
-name: Draft release
+name: Create New Release
 
 on:
   workflow_dispatch:
@@ -11,19 +11,14 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
-
 jobs:
-  build:
+  verify-input:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-
+    permissions:
+      contents: read
     steps:
-      - name: Verify inputs
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify input
         env:
           VERSION: ${{ inputs.version }}
         run: |
@@ -33,75 +28,31 @@ jobs:
             exit 1
           fi
 
-          MAJOR="${BASH_REMATCH[1]}"
-          MINOR="${BASH_REMATCH[2]}"
-          PATCH="${BASH_REMATCH[3]}"
+          TAG="v$VERSION"
 
-          # Latest released tag, newest first, ignoring anything not vX.Y.Z
-          LATEST_TAG=$(git ls-remote --tags --refs --sort=-v:refname \
-            "https://github.com/${GITHUB_REPOSITORY}.git" \
-            | sed 's#.*refs/tags/##' \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | head -n1) || true
-
-          if [[ -z "$LATEST_TAG" ]]; then
-            echo "::error::No existing tag matching vX.Y.Z found"
-            exit 1
-          fi
-          echo "Latest released tag: $LATEST_TAG"
-
-          if [[ "$LATEST_TAG" == "v$VERSION" ]]; then
-            echo "::error::v$VERSION is already released"
+          # Fail if the tag already exists
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
+            echo "Error: Tag $TAG already exists. Aborting."
             exit 1
           fi
 
-          [[ "${LATEST_TAG#v}" =~ $SEMVER_REGEX ]]
-          LATEST_MAJOR="${BASH_REMATCH[1]}"
-          LATEST_MINOR="${BASH_REMATCH[2]}"
-          LATEST_PATCH="${BASH_REMATCH[3]}"
+          echo "Creating Tag $TAG ..."
 
-          if [[ "$MAJOR" -eq "$LATEST_MAJOR" && "$MINOR" -eq "$LATEST_MINOR" && "$PATCH" -eq $((LATEST_PATCH + 1)) ]]; then
-            BUMP=patch
-          elif [[ "$MAJOR" -eq "$LATEST_MAJOR" && "$MINOR" -eq $((LATEST_MINOR + 1)) && "$PATCH" -eq 0 ]]; then
-            BUMP=minor
-          elif [[ "$MAJOR" -eq $((LATEST_MAJOR + 1)) && "$MINOR" -eq 0 && "$PATCH" -eq 0 ]]; then
-            BUMP=major
-          else
-            echo "::error::v$VERSION is not a valid bump from $LATEST_TAG"
-            exit 1
-          fi
-
-          echo "Releasing v$VERSION ($BUMP bump from $LATEST_TAG)"
-
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r dev-requirements.txt
-          pip install -e .
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-      - name: Lint with PyLint
-        run: pylint --rcfile=.pylintrc src/aws_secretsmanager_caching
-      - name: Check formatting with Ruff
-        uses: astral-sh/ruff-action@v3
-      - name: Test with pytest
-        run: |
-          pytest test/unit/
+  run-test:
+    permissions:
+      contents: read
+      id-token: write
+    needs: verify-input
+    uses: ./.github/workflows/python-package.yml
 
   draft-release:
-    needs: build
+    needs: run-test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment: release
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Draft release v${{ inputs.version }}
         env:
           GH_TOKEN: ${{ github.token }}
@@ -113,5 +64,4 @@ jobs:
             --target "$GITHUB_SHA"
 
           echo "Drafted release v$VERSION"
-          gh release view "v$VERSION" --json url -q .url
       
