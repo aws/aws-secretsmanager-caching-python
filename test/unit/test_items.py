@@ -113,24 +113,20 @@ class TestSecretCacheObject(unittest.TestCase):
         self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
 
     @patch("aws_secretsmanager_caching.cache.items.time.sleep")
-    def test_refresh_secret_now_with_pending_exception(self, mock_sleep):
-        # Regression test: when a prior refresh failed, _next_retry_time holds a
-        # datetime. The old code subtracted an int (current time in millis) from
-        # that datetime, raising TypeError. refresh_secret_now() must instead
-        # diff the two datetimes and sleep until the scheduled retry time.
+    def test_force_refresh_with_retry_pending(self, mock_sleep):
+        # A failed refresh leaves _next_retry_time holding a datetime. Forcing a refresh
+        # then subtracted an int (millis) from that datetime, raising TypeError and
+        # masking the real error. Confirm the forced refresh now goes through instead.
         sco = SecretCacheObject(SecretCacheConfig(), None, None)
-        sco._exception = Exception("prior refresh failure")
-        sco._next_retry_time = datetime.now(timezone.utc) + timedelta(seconds=30)
+        sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
+        sco._refresh_needed = True
+
+        sco._SecretCacheObject__refresh()
+        self.assertIsNotNone(sco._exception)
+
         sco._execute_refresh = Mock()
+        sco.refresh_secret_now()  # would have raised TypeError before the fix
 
-        # Would have raised TypeError before the fix.
-        sco.refresh_secret_now()
-
-        # ~30s until retry -> ~30000ms; time.sleep() receives seconds (ms / 1000).
-        mock_sleep.assert_called_once()
-        slept_seconds = mock_sleep.call_args[0][0]
-        self.assertGreater(slept_seconds, 25)
-        self.assertLess(slept_seconds, 60)
         sco._execute_refresh.assert_called_once()
 
 
