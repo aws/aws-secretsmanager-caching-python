@@ -136,7 +136,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
 
         if self._exception is not None:
             now = datetime.now(timezone.utc)
-            exception_sleep = max((self._next_retry_time - now).total_seconds() * 1000, 0)
+            exception_sleep = (self._next_retry_time - now).total_seconds() * 1000
             sleep = max(exception_sleep, sleep)
 
         # Divide by 1000 for millis
