@@ -51,5 +51,5 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac
         with:
-          fail_ci_if_error: false # REMEMBER TO FIX (SET LIKE THIS FOR TESTING) blah blah blah
+          fail_ci_if_error: true
           use_oidc: true
