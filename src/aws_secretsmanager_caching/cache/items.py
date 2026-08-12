@@ -134,7 +134,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
-        if self._exception is not None:
+        if self._exception is not None and self._next_retry_time is not None:
             now = datetime.now(timezone.utc)
             exception_sleep = (self._next_retry_time - now).total_seconds() * 1000
             sleep = max(exception_sleep, sleep)
