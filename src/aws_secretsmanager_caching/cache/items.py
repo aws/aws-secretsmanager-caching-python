@@ -97,6 +97,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             self._set_result(self._execute_refresh())
             self._exception = None
             self._exception_count = 0
+            self._next_retry_time = None
         except Exception as e:  # pylint: disable=broad-except
             self._exception = e
             delay = self._config.exception_retry_delay_base * (
@@ -142,7 +143,10 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         # Divide by 1000 for millis
         time.sleep(sleep / 1000)
 
-        self._execute_refresh()
+        # Refresh under the lock: __refresh stores the result and resets exception/backoff
+        # state on success, or records the exception and schedules a retry on failure.
+        with self._lock:
+            self.__refresh()
 
     def _get_result(self):
         """Get the stored result using a hook if present"""

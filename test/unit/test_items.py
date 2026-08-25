@@ -114,20 +114,26 @@ class TestSecretCacheObject(unittest.TestCase):
 
     @patch("aws_secretsmanager_caching.cache.items.time.sleep")
     def test_force_refresh_with_retry_pending(self, mock_sleep):
-        # A failed refresh leaves _next_retry_time holding a datetime. Forcing a refresh
-        # then subtracted an int (millis) from that datetime, raising TypeError and
-        # masking the real error. Confirm the forced refresh now goes through instead.
+        # With a retry pending, refresh_secret_now() should not raise, should update the
+        # cache, and should clear the recorded exception/backoff state on success.
         sco = SecretCacheObject(SecretCacheConfig(), None, None)
         sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
         sco._refresh_needed = True
 
         sco._SecretCacheObject__refresh()
         self.assertIsNotNone(sco._exception)
+        self.assertIsNotNone(sco._next_retry_time)
 
-        sco._execute_refresh = Mock()
+        sco._execute_refresh = Mock(return_value="refreshed")
         sco.refresh_secret_now()  # would have raised TypeError before the fix
 
         sco._execute_refresh.assert_called_once()
+        # Issue #1: the fetched value is stored in the cache rather than discarded.
+        self.assertEqual(sco._get_result(), "refreshed")
+        # Issue #3: a successful forced refresh clears the recorded exception and backoff.
+        self.assertIsNone(sco._exception)
+        self.assertEqual(sco._exception_count, 0)
+        self.assertIsNone(sco._next_retry_time)
 
 
 class TestSecretCacheItem(unittest.TestCase):
