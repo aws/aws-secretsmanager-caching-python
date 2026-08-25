@@ -128,9 +128,9 @@ class TestSecretCacheObject(unittest.TestCase):
         sco.refresh_secret_now()  # would have raised TypeError before the fix
 
         sco._execute_refresh.assert_called_once()
-        # Issue #1: the fetched value is stored in the cache rather than discarded.
+        # the fetched value is stored in the cache rather than discarded
         self.assertEqual(sco._get_result(), "refreshed")
-        # Issue #3: a successful forced refresh clears the recorded exception and backoff.
+        # a successful forced refresh clears the recorded exception and backoff state
         self.assertIsNone(sco._exception)
         self.assertEqual(sco._exception_count, 0)
         self.assertIsNone(sco._next_retry_time)
