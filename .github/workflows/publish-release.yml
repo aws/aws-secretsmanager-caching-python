@@ -1,0 +1,80 @@
+# This workflow will publish the python binaries to PyPI
+
+name: Publish Release
+
+on:
+  workflow_call:
+
+jobs:
+  release-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.x"
+
+      - name: build release distributions
+        run: |
+          # NOTE: put your own distribution build steps here.
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install build wheel setuptools
+          python setup.py install
+          python -m build
+
+      - name: upload windows dists
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish-test:
+    runs-on: ubuntu-latest
+    needs:
+      - release-build
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f
+        with:
+          repository-url: https://test.pypi.org/legacy/
+  
+  READ-PLEASE:
+    runs-on: ubuntu-latest
+    needs: pypi-publish-test
+    steps:
+      - name: Review Instructuons (PLEASE READ)
+        run: |
+          echo "Please do the following before approving release for prod."
+          echo "Go to https://test.pypi.org/project/aws-secretsmanager-caching/"
+          echo "Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)"
+
+  pypi-publish:
+    runs-on: ubuntu-latest
+    environment: publish # Will act as a temporary blocker that the invoker can self-approve so that they would check if the binaries uploaded properly
+    needs:
+      - READ-PLEASE
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f
+      
