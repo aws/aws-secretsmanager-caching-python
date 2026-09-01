@@ -127,17 +127,28 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
 
     def refresh_secret_now(self):
         """Force a refresh of the cached secret.
-        :rtype: None
-        :return: None
+
+        A failed refresh does not raise. The exception is recorded and a retry is
+        scheduled.
+
+        Note that for a cached secret this refreshes the secret metadata only; the
+        secret value for a version is fetched lazily by get_secret_value(). A True
+        result therefore does not guarantee the value itself can be retrieved.
+
+        :rtype: bool
+        :return: True if this refresh recorded no error.
         """
         self._refresh_needed = True
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
-        if self._exception is not None and self._next_retry_time is not None:
+        # Read _next_retry_time once. It is not protected by the lock here, so a
+        # concurrent successful refresh can clear it between the check and the use.
+        retry_at = self._next_retry_time
+        if self._exception is not None and retry_at is not None:
             now = datetime.now(timezone.utc)
-            exception_sleep = (self._next_retry_time - now).total_seconds() * 1000
+            exception_sleep = (retry_at - now).total_seconds() * 1000
             sleep = max(exception_sleep, sleep)
 
         # Divide by 1000 for millis
@@ -147,6 +158,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         # state on success, or records the exception and schedules a retry on failure.
         with self._lock:
             self.__refresh()
+            return self._exception is None
 
     def _get_result(self):
         """Get the stored result using a hook if present"""
