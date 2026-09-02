@@ -33,6 +33,7 @@ jobs:
 
   pypi-publish-test:
     runs-on: ubuntu-latest
+    environment: publish-test
     needs:
       - release-build
     permissions:
