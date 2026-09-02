@@ -1,5 +1,4 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions.
-# After doing that, it will draft a release with the most up to date version
+# Create a new release with the specified version
 
 name: Create New Release
 
@@ -17,7 +16,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Verify input
         env:
           VERSION: ${{ inputs.version }}
@@ -44,7 +43,6 @@ jobs:
       contents: read
       id-token: write
     needs: verify-input
-    # Calls the Pull Request workflow and ensure all tests pass before moving on
     uses: ./.github/workflows/python-package.yml
 
   draft-release:
@@ -54,7 +52,7 @@ jobs:
       contents: write
     environment: release
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Draft release v${{ inputs.version }}
         env:
           GH_TOKEN: ${{ github.token }}
