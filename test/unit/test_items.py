@@ -114,8 +114,6 @@ class TestSecretCacheObject(unittest.TestCase):
 
     @patch("aws_secretsmanager_caching.cache.items.time.sleep")
     def test_force_refresh_with_retry_pending(self, mock_sleep):
-        # With a retry pending, refresh_secret_now() should not raise, should update the
-        # cache, and should clear the recorded exception/backoff state on success.
         sco = SecretCacheObject(SecretCacheConfig(), None, None)
         sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
         sco._refresh_needed = True
@@ -125,22 +123,17 @@ class TestSecretCacheObject(unittest.TestCase):
         self.assertIsNotNone(sco._next_retry_time)
 
         sco._execute_refresh = Mock(return_value="refreshed")
-        refreshed = sco.refresh_secret_now()  # would have raised TypeError before the fix
+        refreshed = sco.refresh_secret_now()
 
-        # a successful forced refresh reports True
         self.assertTrue(refreshed)
         sco._execute_refresh.assert_called_once()
-        # the fetched value is stored in the cache rather than discarded
         self.assertEqual(sco._get_result(), "refreshed")
-        # a successful forced refresh clears the recorded exception and backoff state
         self.assertIsNone(sco._exception)
         self.assertEqual(sco._exception_count, 0)
         self.assertIsNone(sco._next_retry_time)
 
     @patch("aws_secretsmanager_caching.cache.items.time.sleep")
     def test_force_refresh_reports_failure(self, mock_sleep):
-        # A failed forced refresh does not raise; it reports False and each call still
-        # attempts the refresh rather than being short-circuited by the pending backoff.
         sco = SecretCacheObject(SecretCacheConfig(), None, None)
         sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
 
@@ -150,7 +143,6 @@ class TestSecretCacheObject(unittest.TestCase):
         self.assertFalse(sco.refresh_secret_now())
         self.assertEqual(sco._execute_refresh.call_count, 2)
 
-        # the error is recorded, and with nothing cached the next read re-raises it
         self.assertIsNotNone(sco._exception)
         self.assertRaises(Exception, sco.get_secret_value)
 
