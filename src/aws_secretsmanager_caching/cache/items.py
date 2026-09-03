@@ -88,7 +88,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         """Refresh the cached object when needed.
 
         :rtype: bool
-        :return: True if the object holds no recorded error after this call.
+        :return: True if the refresh attempt succeeded.
         """
         if not self._is_refresh_needed():
             return self._exception is None
