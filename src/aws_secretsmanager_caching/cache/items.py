@@ -87,17 +87,18 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     def __refresh(self):
         """Refresh the cached object when needed.
 
-        :rtype: None
-        :return: None
+        :rtype: bool
+        :return: True if the object holds no recorded error after this call.
         """
         if not self._is_refresh_needed():
-            return
+            return self._exception is None
         self._refresh_needed = False
         try:
             self._set_result(self._execute_refresh())
             self._exception = None
             self._exception_count = 0
             self._next_retry_time = None
+            return True
         except Exception as e:  # pylint: disable=broad-except
             self._exception = e
             delay = self._config.exception_retry_delay_base * (
@@ -106,6 +107,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
             self._exception_count += 1
             delay = min(delay, self._config.exception_retry_delay_max)
             self._next_retry_time = datetime.now(timezone.utc) + timedelta(seconds=delay)
+            return False
 
     def get_secret_value(self, version_stage=None):
         """Get the cached secret value for the given version stage.
@@ -128,37 +130,25 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     def refresh_secret_now(self):
         """Force a refresh of the cached secret.
 
-        A failed refresh does not raise. The exception is recorded and a retry is
-        scheduled.
-
-        Note that for a cached secret this refreshes the secret metadata only; the
-        secret value for a version is fetched lazily by get_secret_value(). A True
-        result therefore does not guarantee the value itself can be retrieved.
-
         :rtype: bool
-        :return: True if this refresh recorded no error.
+        :return: True if the refresh recorded no error.
         """
         self._refresh_needed = True
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
-        # Read _next_retry_time once. It is not protected by the lock here, so a
-        # concurrent successful refresh can clear it between the check and the use.
         retry_at = self._next_retry_time
         if self._exception is not None and retry_at is not None:
             now = datetime.now(timezone.utc)
             exception_sleep = (retry_at - now).total_seconds() * 1000
             sleep = max(exception_sleep, sleep)
 
-        # Divide by 1000 for millis
+        # divide sleep(millis) by 1000 to get seconds
         time.sleep(sleep / 1000)
 
-        # Refresh under the lock: __refresh stores the result and resets exception/backoff
-        # state on success, or records the exception and schedules a retry on failure.
         with self._lock:
-            self.__refresh()
-            return self._exception is None
+            return self.__refresh()
 
     def _get_result(self):
         """Get the stored result using a hook if present"""
