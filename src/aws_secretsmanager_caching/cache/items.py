@@ -87,6 +87,8 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     def __refresh(self):
         """Refresh the cached object when needed.
 
+        The caller must hold self._lock.
+
         :rtype: bool
         :return: True if the refresh attempt succeeded.
         """
@@ -133,15 +135,15 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         :rtype: bool
         :return: True if the refresh succeeded.
         """
-        self._refresh_needed = True
+        with self._lock:
+            self._refresh_needed = True
+            retry_at = self._next_retry_time if self._exception is not None else None
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
-        retry_at = self._next_retry_time
-        if self._exception is not None and retry_at is not None:
-            now = datetime.now(timezone.utc)
-            exception_sleep = (retry_at - now).total_seconds() * 1000
+        if retry_at is not None:
+            exception_sleep = (retry_at - datetime.now(timezone.utc)).total_seconds() * 1000
             sleep = max(exception_sleep, sleep)
 
         # divide sleep(millis) by 1000 to get seconds
