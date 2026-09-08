@@ -15,7 +15,7 @@ Unit test suite for items module
 """
 import unittest
 from datetime import timezone, datetime, timedelta
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from aws_secretsmanager_caching.cache.items import SecretCacheObject, SecretCacheItem
 from aws_secretsmanager_caching.config import SecretCacheConfig
@@ -99,18 +99,52 @@ class TestSecretCacheObject(unittest.TestCase):
         t_after = datetime.now(tz=timezone.utc)
 
         t_before_delay = t_before + timedelta(
-            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+            seconds=secret_cached_object._config.exception_retry_delay_base * (
                 secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertLessEqual(t_before_delay, secret_cached_object._next_retry_time)
 
         t_after_delay = t_after + timedelta(
-            milliseconds=secret_cached_object._config.exception_retry_delay_base * (
+            seconds=secret_cached_object._config.exception_retry_delay_base * (
                 secret_cached_object._config.exception_retry_growth_factor ** exp_factor
             )
         )
         self.assertGreaterEqual(t_after_delay, secret_cached_object._next_retry_time)
+
+    @patch("aws_secretsmanager_caching.cache.items.time.sleep")
+    def test_force_refresh_with_retry_pending(self, mock_sleep):
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
+        sco._refresh_needed = True
+
+        sco._SecretCacheObject__refresh()
+        self.assertIsNotNone(sco._exception)
+        self.assertIsNotNone(sco._next_retry_time)
+
+        sco._execute_refresh = Mock(return_value="refreshed")
+        refreshed = sco.refresh_secret_now()
+
+        self.assertTrue(refreshed)
+        sco._execute_refresh.assert_called_once()
+        self.assertEqual(sco._get_result(), "refreshed")
+        self.assertIsNone(sco._exception)
+        self.assertEqual(sco._exception_count, 0)
+        self.assertIsNone(sco._next_retry_time)
+
+    @patch("aws_secretsmanager_caching.cache.items.time.sleep")
+    def test_force_refresh_reports_failure(self, mock_sleep):
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._execute_refresh = Mock(side_effect=Exception("exception used for test"))
+
+        self.assertFalse(sco.refresh_secret_now())
+        self.assertEqual(sco._execute_refresh.call_count, 1)
+
+        self.assertFalse(sco.refresh_secret_now())
+        self.assertEqual(sco._execute_refresh.call_count, 2)
+
+        self.assertIsNotNone(sco._exception)
+        self.assertRaises(Exception, sco.get_secret_value)
 
 
 class TestSecretCacheItem(unittest.TestCase):
