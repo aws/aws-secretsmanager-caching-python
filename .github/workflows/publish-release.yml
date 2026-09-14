@@ -8,6 +8,8 @@ on:
 jobs:
   release-build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -18,11 +20,11 @@ jobs:
 
       - name: build release distributions
         run: |
-          # NOTE: put your own distribution build steps here.
+          set -euo pipefail
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install build wheel setuptools
-          python setup.py install
+          python -m pip install .
           python -m build
 
       - name: upload artifacts
@@ -46,10 +48,11 @@ jobs:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/717ba43cfbb0387f6ce311b169a825772f54d295 # v1
+      - name: Publish release distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
   
   READ-PLEASE:
     runs-on: ubuntu-latest
@@ -77,5 +80,5 @@ jobs:
           path: dist/
 
       - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/717ba43cfbb0387f6ce311b169a825772f54d295 # v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
       

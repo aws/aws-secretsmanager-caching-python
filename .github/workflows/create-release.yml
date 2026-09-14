@@ -39,13 +39,13 @@ jobs:
           echo "Creating Tag $TAG ..."
 
   run-test:
+    needs: verify-input
     permissions:
       contents: read
       id-token: write
-    needs: verify-input
     uses: ./.github/workflows/python-package.yml
 
-  draft-release:
+  create-release:
     needs: run-test
     runs-on: ubuntu-latest
     permissions:
@@ -64,4 +64,11 @@ jobs:
             --target "$GITHUB_SHA"
 
           echo "Drafted release v$VERSION"
-      
+    
+  publish-binaries:
+    needs: create-release
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/publish-release.yml
+    
