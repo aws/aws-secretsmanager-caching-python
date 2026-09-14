@@ -27,6 +27,8 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
     # Jitter max for refresh now
     FORCE_REFRESH_JITTER_SLEEP = 5000
+    # Ceiling on the retry backoff a forced refresh will wait out
+    FORCE_REFRESH_MAX_SLEEP = 10000
     __metaclass__ = ABCMeta
 
     def __init__(self, config, client, secret_id):
@@ -136,20 +138,22 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         :return: True if the refresh succeeded.
         """
         with self._lock:
-            self._refresh_needed = True
             retry_at = self._next_retry_time if self._exception is not None else None
 
         # Generate a random number to have a sleep jitter to not get stuck in a retry loop
         sleep = randint(int(self.FORCE_REFRESH_JITTER_SLEEP / 2), self.FORCE_REFRESH_JITTER_SLEEP + 1)
 
+        # Waits at most FORCE_REFRESH_MAX_SLEEP for a pending retry backoff,
+        # then refreshes regardless of how much backoff remains.
         if retry_at is not None:
             exception_sleep = (retry_at - datetime.now(timezone.utc)).total_seconds() * 1000
-            sleep = max(exception_sleep, sleep)
+            sleep = max(min(exception_sleep, self.FORCE_REFRESH_MAX_SLEEP), sleep)
 
         # divide sleep(millis) by 1000 to get seconds
         time.sleep(sleep / 1000)
 
         with self._lock:
+            self._refresh_needed = True
             return self.__refresh()
 
     def _get_result(self):

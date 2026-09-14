@@ -146,6 +146,36 @@ class TestSecretCacheObject(unittest.TestCase):
         self.assertIsNotNone(sco._exception)
         self.assertRaises(Exception, sco.get_secret_value)
 
+    @patch("aws_secretsmanager_caching.cache.items.time.sleep")
+    def test_force_refresh_caps_backoff_sleep(self, mock_sleep):
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._execute_refresh = Mock(return_value="refreshed")
+        sco._exception = Exception("exception used for test")
+        sco._next_retry_time = datetime.now(tz=timezone.utc) + timedelta(
+            seconds=sco._config.exception_retry_delay_max
+        )
+
+        self.assertTrue(sco.refresh_secret_now())
+        mock_sleep.assert_called_once_with(SecretCacheObject.FORCE_REFRESH_MAX_SLEEP / 1000)
+
+    @patch("aws_secretsmanager_caching.cache.items.time.sleep")
+    def test_force_refresh_keeps_backoff_gate_closed_while_sleeping(self, mock_sleep):
+        sco = SecretCacheObject(SecretCacheConfig(), None, None)
+        sco._execute_refresh = Mock(return_value="refreshed")
+        sco._refresh_needed = False
+        sco._exception = Exception("exception used for test")
+        sco._next_retry_time = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
+
+        observed = []
+
+        def record_gate_state_during_sleep(_duration):
+            observed.append(sco._is_refresh_needed())
+
+        mock_sleep.side_effect = record_gate_state_during_sleep
+
+        self.assertTrue(sco.refresh_secret_now())
+        self.assertEqual(observed, [False])
+
 
 class TestSecretCacheItem(unittest.TestCase):
     def setUp(self):
