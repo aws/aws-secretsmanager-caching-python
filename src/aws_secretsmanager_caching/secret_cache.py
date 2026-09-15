@@ -105,5 +105,8 @@ class SecretCache:
 
         :type secret_id: str
         :param secret_id: The secret identifier
+
+        :rtype: bool
+        :return: True if the secret metadata was refreshed.
         """
-        self._get_cached_secret(secret_id).refresh_secret_now()
+        return self._get_cached_secret(secret_id).refresh_secret_now()

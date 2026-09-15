@@ -187,7 +187,7 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
         secret = cache._get_cached_secret('test')
         self.assertTrue(old_refresh_time == secret._next_refresh_time)
 
-        cache.refresh_secret_now('test')
+        self.assertTrue(cache.refresh_secret_now('test'))
 
         secret = cache._get_cached_secret('test')
 
