@@ -65,10 +65,78 @@ jobs:
 
           echo "Drafted release v$VERSION"
     
-  publish-binaries:
+  release-build:
     needs: create-release
+    runs-on: ubuntu-latest
     permissions:
       contents: read
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-tags: true
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.x"
+
+      - name: build release distributions
+        run: |
+          set -euo pipefail
+          pip install build
+          python -m build
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish-test:
+    needs: release-build
+    runs-on: ubuntu-latest
+    environment: publish-test
+    permissions:
       id-token: write
-    uses: ./.github/workflows/publish-release.yml
-    
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          verbose: true
+  
+  READ-PLEASE:
+    needs: pypi-publish-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Review Instructuons (PLEASE READ)
+        run: |
+          echo "Please do the following before approving release for prod."
+          echo "Go to https://test.pypi.org/project/aws-secretsmanager-caching/"
+          echo "Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)"
+
+  pypi-publish:
+    needs: READ-PLEASE
+    runs-on: ubuntu-latest
+    environment: publish
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
+      
