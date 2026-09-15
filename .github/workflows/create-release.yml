@@ -1,0 +1,142 @@
+# Create a new release with the specified version
+
+name: Create New Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (must be in format <MAJOR>.<MINOR>.<PATCH>, e.g. 1.1.1)'
+        required: true
+        type: string
+
+jobs:
+  verify-input:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Verify input
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # Make sure the input matches the intended format
+          SEMVER_REGEX="^([0-9]+)\.([0-9]+)\.([0-9]+)$"
+          if [[ ! "$VERSION" =~ $SEMVER_REGEX ]]; then
+            echo "::error::Invalid version format '$VERSION'. Must match X.Y.Z (e.g., 1.0.4)"
+            exit 1
+          fi
+
+          TAG="v$VERSION"
+
+          # Fail if the tag already exists
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
+            echo "Error: Tag $TAG already exists. Aborting."
+            exit 1
+          fi
+
+          echo "Creating Tag $TAG ..."
+
+  run-test:
+    needs: verify-input
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/python-package.yml
+
+  create-release:
+    needs: run-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment: release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Draft release v${{ inputs.version }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes \
+            --target "$GITHUB_SHA"
+
+          echo "Drafted release v$VERSION"
+    
+  release-build:
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-tags: true
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.x"
+
+      - name: build release distributions
+        run: |
+          set -euo pipefail
+          pip install build
+          python -m build
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-dists
+          path: dist/
+
+  pypi-publish-test:
+    needs: release-build
+    runs-on: ubuntu-latest
+    environment: publish-test
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to Test PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+          verbose: true
+  
+  READ-PLEASE:
+    needs: pypi-publish-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Review Instructuons (PLEASE READ)
+        run: |
+          echo "Please do the following before approving release for prod."
+          echo "Go to https://test.pypi.org/project/aws-secretsmanager-caching/"
+          echo "Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)"
+
+  pypi-publish:
+    needs: READ-PLEASE
+    runs-on: ubuntu-latest
+    environment: publish
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Retrieve release distributions
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Publish release distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1
+      
