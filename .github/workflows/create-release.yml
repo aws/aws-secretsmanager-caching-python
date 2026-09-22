@@ -124,7 +124,7 @@ jobs:
         run: |
           echo "Please do the following before approving release for prod.
           Go to https://test.pypi.org/project/aws-secretsmanager-caching/
-          Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)" >> $GITHUB_STEP_SUMMARY
+          Check the page for completeness. There should be a new version published, and two artifacts in the "Release files" section: a wheel (.whl) and a source distribution (.tar.gz)" >> $GITHUB_STEP_SUMMARY
     
 
   pypi-publish:
