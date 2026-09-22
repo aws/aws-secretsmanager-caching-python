@@ -12,7 +12,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   verify-input:
@@ -35,7 +35,7 @@ jobs:
           TAG="v$VERSION"
 
           # Fail if the tag already exists
-          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
             echo "Error: Tag $TAG already exists. Aborting."
             exit 1
           fi
