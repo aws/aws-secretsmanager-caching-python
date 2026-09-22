@@ -126,6 +126,8 @@ refreshed = cache.refresh_secret_now('mysecret')  # bool
 secret = cache.get_secret_string('mysecret')
 ```
 
+This call blocks for a few seconds before it retrieves the secret. The short delay is randomized so that many clients refreshing at the same time, such as after a rotation, do not all call Secrets Manager at once. If a recent refresh failed, the call also waits for the pending retry delay, up to a maximum of 10 seconds. Because of this, call `refresh_secret_now()` when you have reason to believe the cached secret is out of date rather than before every retrieval.
+
 #### Cache Configuration
 
 You can configure the cache config object with the following parameters:
