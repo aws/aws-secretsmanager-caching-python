@@ -10,6 +10,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   verify-input:
     runs-on: ubuntu-latest
@@ -31,7 +35,7 @@ jobs:
           TAG="v$VERSION"
 
           # Fail if the tag already exists
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
             echo "Error: Tag $TAG already exists. Aborting."
             exit 1
           fi
@@ -111,7 +115,6 @@ jobs:
         with:
           repository-url: https://test.pypi.org/legacy/
           skip-existing: true
-          verbose: true
   
   READ-PLEASE:
     needs: pypi-publish-test
@@ -119,9 +122,10 @@ jobs:
     steps:
       - name: Review Instructuons (PLEASE READ)
         run: |
-          echo "Please do the following before approving release for prod."
-          echo "Go to https://test.pypi.org/project/aws-secretsmanager-caching/"
-          echo "Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)"
+          echo "Please do the following before approving release for prod.
+          Go to https://test.pypi.org/project/aws-secretsmanager-caching/
+          Check the page for completeness. There should be a new version published, and two artifacts in the "Download files" section: a wheel (.whl) and a source distribution (.tar.gz)" >> $GITHUB_STEP_SUMMARY
+    
 
   pypi-publish:
     needs: READ-PLEASE
