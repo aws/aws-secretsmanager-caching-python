@@ -115,6 +115,17 @@ cache = SecretCache(config=cache_config, client=client)
 secret = cache.get_secret_string('mysecret')
 ```
 
+#### Forcing a Refresh
+
+The cache normally refreshes a secret only once `secret_refresh_interval` seconds have passed since the last refresh (1 hour by default). Within that window `get_secret_string()` returns the cached value without calling Secrets Manager, so a secret rotated in the meantime will not be picked up until the interval elapses.
+
+`refresh_secret_now()` fetches the secret from Secrets Manager immediately instead of waiting for that interval. It returns `True` if the refresh succeeded, or `False` if it failed, in which case the previously cached value is kept.
+
+```python
+refreshed = cache.refresh_secret_now('mysecret')  # bool
+secret = cache.get_secret_string('mysecret')
+```
+
 #### Cache Configuration
 
 You can configure the cache config object with the following parameters:
