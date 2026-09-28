@@ -20,6 +20,13 @@ import botocore.session
 from .cache import LRUCache, SecretCacheItem
 from .config import SecretCacheConfig
 
+# Timeouts, in seconds, for the client the cache builds when none is passed in.
+# botocore otherwise waits 60 seconds to connect and 60 seconds for each read,
+# so an endpoint that accepts a connection and never answers stalls the caller
+# for minutes. A timed out attempt is retried like any other network error.
+DEFAULT_CONNECT_TIMEOUT = 2
+DEFAULT_READ_TIMEOUT = 2
+
 
 class SecretCache:
     """Secret Cache client for AWS Secrets Manager secrets"""
@@ -37,7 +44,9 @@ class SecretCache:
         :param config: Secret cache configuration
 
         :type client: botocore.client.BaseClient
-        :param client: botocore 'secretsmanager' client
+        :param client: botocore 'secretsmanager' client. If omitted, a client is
+            created with DEFAULT_CONNECT_TIMEOUT and DEFAULT_READ_TIMEOUT. A
+            client passed in keeps its own timeouts.
         """
 
         self._client = client
@@ -45,6 +54,8 @@ class SecretCache:
         self._cache = LRUCache(max_size=self._config.max_cache_size)
         boto_config = botocore.config.Config(**{
             "user_agent_extra": f"AwsSecretCache/{SecretCache.__version__}",
+            "connect_timeout": DEFAULT_CONNECT_TIMEOUT,
+            "read_timeout": DEFAULT_READ_TIMEOUT,
         })
         if self._client is None:
             self._client = botocore.session.get_session().create_client("secretsmanager", config=boto_config)

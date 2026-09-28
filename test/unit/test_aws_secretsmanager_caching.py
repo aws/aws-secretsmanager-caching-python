@@ -13,17 +13,33 @@
 """
 Unit test suite for high-level functions in aws_secretsmanager_caching
 """
+import os
+import socket
+import time
 import unittest
+from contextlib import contextmanager
+from unittest.mock import patch
 
 import botocore
+import botocore.config
 import pytest
-from botocore.exceptions import ClientError, NoRegionError
+from botocore.exceptions import ClientError, NoRegionError, ReadTimeoutError
 from botocore.stub import Stubber
 
 from aws_secretsmanager_caching.config import SecretCacheConfig
 from aws_secretsmanager_caching.secret_cache import SecretCache
 
 pytestmark = [pytest.mark.unit, pytest.mark.local]
+
+
+@contextmanager
+def hung_endpoint():
+    """A listening socket that is never read. It completes the TCP handshake
+    but never answers, like an endpoint that hangs after connecting."""
+    with socket.socket() as hung:
+        hung.bind(('127.0.0.1', 0))
+        hung.listen()
+        yield hung
 
 
 class TestAwsSecretsManagerCaching(unittest.TestCase):
@@ -59,6 +75,68 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
                             does not include: {user_agent_extra}")
         except NoRegionError:
             pass
+
+    # Only a region and dummy credentials, so the developer's own AWS
+    # settings (profile, proxy, endpoint overrides) can't change these tests.
+    ISOLATED_ENV = {
+        'AWS_DEFAULT_REGION': 'us-west-2',
+        'AWS_ACCESS_KEY_ID': 'akid',
+        'AWS_SECRET_ACCESS_KEY': 'secret',
+        'AWS_CONFIG_FILE': os.devnull,
+        'AWS_SHARED_CREDENTIALS_FILE': os.devnull,
+    }
+
+    def test_default_client_timeouts(self):
+        with patch.dict(os.environ, self.ISOLATED_ENV, clear=True):
+            config = SecretCache()._client.meta.config
+        self.assertEqual(config.connect_timeout, 2)
+        self.assertEqual(config.read_timeout, 2)
+
+    def test_client_keeps_own_timeouts(self):
+        with patch.dict(os.environ, self.ISOLATED_ENV, clear=True):
+            client = botocore.session.get_session().create_client(
+                'secretsmanager', region_name='us-west-2',
+                config=botocore.config.Config(connect_timeout=7, read_timeout=30))
+        config = SecretCache(client=client)._client.meta.config
+        self.assertEqual(config.connect_timeout, 7)
+        self.assertEqual(config.read_timeout, 30)
+
+    def hung_cache(self, hung, retries):
+        """Build a cache with its default client, pointed at the hung socket
+        and limited to the given number of retries."""
+        create_client = botocore.session.Session.create_client
+
+        def create_hung_client(session, *args, **kwargs):
+            kwargs['endpoint_url'] = f'http://127.0.0.1:{hung.getsockname()[1]}'
+            kwargs['config'] = kwargs['config'].merge(botocore.config.Config(retries={'max_attempts': retries}))
+            return create_client(session, *args, **kwargs)
+
+        with patch.dict(os.environ, self.ISOLATED_ENV, clear=True), \
+                patch.object(botocore.session.Session, 'create_client', create_hung_client):
+            return SecretCache()
+
+    # The value itself is checked by test_default_client_timeouts. These use a
+    # shorter one so the suite stays fast.
+    @patch('aws_secretsmanager_caching.secret_cache.DEFAULT_READ_TIMEOUT', 0.5)
+    @patch('aws_secretsmanager_caching.secret_cache.DEFAULT_CONNECT_TIMEOUT', 0.5)
+    def seconds_to_time_out(self, retries):
+        with hung_endpoint() as hung:
+            cache = self.hung_cache(hung, retries)
+            start = time.monotonic()
+            with self.assertRaises(ReadTimeoutError):
+                cache.get_secret_string('test')
+            return time.monotonic() - start
+
+    def test_default_client_gives_up_on_hung_endpoint(self):
+        elapsed = self.seconds_to_time_out(retries=0)
+        self.assertGreaterEqual(elapsed, 0.4)
+        self.assertLess(elapsed, 3)
+
+    def test_default_client_retries_timed_out_attempt(self):
+        # Two 0.5 second attempts, plus up to 1 second of backoff between them.
+        elapsed = self.seconds_to_time_out(retries=1)
+        self.assertGreaterEqual(elapsed, 0.9)
+        self.assertLess(elapsed, 4)
 
     def test_client_stub(self):
         SecretCache(client=self.get_client())
