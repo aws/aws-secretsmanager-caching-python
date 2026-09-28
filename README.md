@@ -115,6 +115,17 @@ cache = SecretCache(config=cache_config, client=client)
 secret = cache.get_secret_string('mysecret')
 ```
 
+#### Request Timeouts
+
+If you don't pass in a client, the cache creates one that waits at most 2 seconds for each connection attempt and 2 seconds for each read (botocore's own defaults are 60 seconds each). A timed out request is retried like any other network error, so with botocore's default retry settings (5 attempts in legacy mode) a call to an endpoint that accepts the connection but never answers fails after about 10 to 25 seconds in total, instead of several minutes. The connect timeout applies to each address the endpoint's name resolves to, so an endpoint that silently drops connections can take longer. If you pass in your own client, the cache uses that client's timeouts unchanged, so set them yourself:
+
+```python
+import botocore.config
+
+client = botocore.session.get_session().create_client(
+    'secretsmanager', config=botocore.config.Config(connect_timeout=2, read_timeout=2))
+```
+
 #### Forcing a Refresh
 
 The cache normally refreshes a secret only once `secret_refresh_interval` seconds have passed since the last refresh (1 hour by default). Within that window `get_secret_string()` returns the cached value without calling Secrets Manager, so a secret rotated in the meantime will not be picked up until the interval elapses.
