@@ -23,6 +23,10 @@ from random import randint
 from .lru import LRUCache
 
 
+# A hook may use None as its stored representation of a cached result.
+_NOT_CACHED = object()
+
+
 class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
     """Secret cache object that handles the common refresh logic."""
     # Jitter max for refresh now
@@ -47,7 +51,7 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
         self._config = config
         self._client = client
         self._secret_id = secret_id
-        self._result = None
+        self._result = _NOT_CACHED
         self._exception = None
         self._exception_count = 0
         self._refresh_needed = True
@@ -158,6 +162,8 @@ class SecretCacheObject:  # pylint: disable=too-many-instance-attributes
 
     def _get_result(self):
         """Get the stored result using a hook if present"""
+        if self._result is _NOT_CACHED:
+            return None
         if self._config.secret_cache_hook is None:
             return self._result
 
