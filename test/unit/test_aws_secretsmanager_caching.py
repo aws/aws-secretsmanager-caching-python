@@ -14,6 +14,7 @@
 Unit test suite for high-level functions in aws_secretsmanager_caching
 """
 import unittest
+from unittest.mock import Mock, patch
 
 import botocore
 import pytest
@@ -62,6 +63,43 @@ class TestAwsSecretsManagerCaching(unittest.TestCase):
 
     def test_client_stub(self):
         SecretCache(client=self.get_client())
+
+    def test_secret_evicted_between_insert_and_lookup(self):
+        # Simulate another caller evicting this item before the final lookup.
+        for method, field, value in [
+            ('get_secret_string', 'SecretString', 'cached value'),
+            ('get_secret_binary', 'SecretBinary', b'cached value'),
+        ]:
+            with self.subTest(method=method):
+                client = Mock()
+                client.describe_secret.return_value = {'VersionIdsToStages': {'version': ['AWSCURRENT']}}
+                client.get_secret_value.return_value = {field: value}
+                cache = SecretCache(config=SecretCacheConfig(max_cache_size=1), client=client)
+                put_if_absent = cache._cache.put_if_absent
+
+                def insert_then_evict(key, item):
+                    result = put_if_absent(key, item)
+                    put_if_absent('another-secret', object())
+                    return result
+
+                with patch.object(cache._cache, 'put_if_absent', side_effect=insert_then_evict):
+                    self.assertEqual(getattr(cache, method)('test'), value)
+
+                self.assertIsNone(cache._cache.get('test'))
+                client.describe_secret.assert_called_once_with(SecretId='test')
+                client.get_secret_value.assert_called_once_with(SecretId='test', VersionId='version')
+
+    def test_secret_inserted_by_another_caller_is_reused(self):
+        cache = SecretCache(client=Mock())
+        existing_item = object()
+        put_if_absent = cache._cache.put_if_absent
+
+        def insert_existing_first(key, item):
+            put_if_absent(key, existing_item)
+            return put_if_absent(key, item)
+
+        with patch.object(cache._cache, 'put_if_absent', side_effect=insert_existing_first):
+            self.assertIs(cache._get_cached_secret('test'), existing_item)
 
     def test_get_secret_string_none(self):
         cache = SecretCache(client=self.get_client())
