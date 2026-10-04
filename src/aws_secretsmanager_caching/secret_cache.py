@@ -61,10 +61,12 @@ class SecretCache:
         secret = self._cache.get(secret_id)
         if secret is not None:
             return secret
-        self._cache.put_if_absent(
-            secret_id, SecretCacheItem(config=self._config, client=self._client, secret_id=secret_id)
-        )
-        return self._cache.get(secret_id)
+        secret = SecretCacheItem(config=self._config, client=self._client, secret_id=secret_id)
+        self._cache.put_if_absent(secret_id, secret)
+        # Another caller may evict the item before this lookup. Keep a usable
+        # reference while still preferring an item inserted by a concurrent caller.
+        cached_secret = self._cache.get(secret_id)
+        return secret if cached_secret is None else cached_secret
 
     def get_secret_string(self, secret_id, version_stage=None):
         """Get the secret string value from the cache.
