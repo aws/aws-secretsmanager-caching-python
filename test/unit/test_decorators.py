@@ -15,6 +15,8 @@ Unit test suite for decorators module
 """
 import json
 import unittest
+from functools import lru_cache
+from unittest.mock import Mock
 
 import botocore
 from aws_secretsmanager_caching.decorators import InjectKeywordedSecretString, InjectSecretString
@@ -144,6 +146,87 @@ class TestAwsSecretsManagerCachingInjectKeywordedSecretStringDecorator(unittest.
 
 
 class TestAwsSecretsManagerCachingInjectSecretStringDecorator(unittest.TestCase):
+
+    def test_plain_get_function_keeps_dictionary_after_secret(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        @InjectSecretString('test', cache)
+        def get(secret, request):
+            return secret, request
+
+        request = {'user': 'bob'}
+        self.assertEqual(get(request), ('secret', request))
+
+    def test_static_method_keeps_instance_argument_after_secret(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        class Example:
+            @staticmethod
+            @InjectSecretString('test', cache)
+            def get(secret, request):
+                return secret, request
+
+        request = Example()
+        self.assertEqual(Example.get(request), ('secret', request))
+
+    def test_inherited_instance_method_keeps_self_before_secret(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        class Parent:
+            @InjectSecretString('test', cache)
+            def get(self, secret, request):
+                return self, secret, request
+
+        class Child(Parent):
+            pass
+
+        instance = Child()
+        self.assertEqual(instance.get('request'), (instance, 'secret', 'request'))
+
+    def test_overridden_instance_method_can_call_decorated_parent(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        class Parent:
+            @InjectSecretString('test', cache)
+            def get(self, secret, request):
+                return self, secret, request
+
+        class Child(Parent):
+            def get(self, request):
+                return super().get(request)
+
+        instance = Child()
+        self.assertEqual(instance.get('request'), (instance, 'secret', 'request'))
+
+    def test_cached_instance_method_keeps_self_before_secret(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        class Example:
+            @lru_cache(maxsize=None)
+            @InjectSecretString('test', cache)
+            def get(self, secret):
+                return self, secret
+
+        instance = Example()
+        self.assertEqual(instance.get(), (instance, 'secret'))
+
+    def test_property_keeps_self_before_secret(self):
+        cache = Mock()
+        cache.get_secret_string.return_value = 'secret'
+
+        class Example:
+            @property
+            @InjectSecretString('test', cache)
+            def get(self, secret):
+                return self, secret
+
+        instance = Example()
+        self.assertEqual(instance.get, (instance, 'secret'))
 
     def get_client(self, response={}, versions=None, version_response=None):
         client = botocore.session.get_session().create_client('secretsmanager', region_name='us-west-2')

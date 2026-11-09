@@ -13,6 +13,7 @@
 """Decorators for use with caching library"""
 
 import json
+import inspect
 from functools import wraps
 
 
@@ -50,8 +51,19 @@ class InjectSecretString:
             """
             secret = self.cache.get_secret_string(secret_id=self.secret_id)
 
-            # Prevent clobbering self arg in class methods
-            if args and hasattr(args[0].__class__, func.__name__):
+            # Only reserve self for an instance method wrapping this function.
+            is_instance_method = False
+            if args:
+                for cls in type(args[0]).__mro__:
+                    method = cls.__dict__.get(func.__name__)
+                    if isinstance(method, (staticmethod, classmethod)):
+                        continue
+                    if isinstance(method, property):
+                        method = method.fget
+                    if inspect.unwrap(method) is inspect.unwrap(func):
+                        is_instance_method = True
+                        break
+            if is_instance_method:
                 new_args = (args[0], secret) + args[1:]
             else:
                 new_args = (secret,) + args
